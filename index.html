@@ -5,7 +5,7 @@
   <title>Agrícola Huarmey - Asistencia</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <link rel="manifest" href="manifest.json">
-  <meta name="theme-color" content="#d32f2f">
+  <meta name="theme-color" content="#c62828">
   
   <!-- CDN Dependencies -->
   <script src="https://cdn.tailwindcss.com"></script>
@@ -189,7 +189,6 @@
             <option value="FALTA TAREO Y FALTA MARCACION">FALTA TAREO Y MARCACION</option>
           </select>
         </div>
-        <!-- Filtros de Infracciones -->
         <div class="mt-3 pt-3 border-t flex flex-wrap gap-3">
           <label class="flex items-center gap-2 text-xs font-bold text-amber-700 cursor-pointer">
             <input type="checkbox" v-model="filtros.masDe3Faltas" class="rounded text-amber-500 focus:ring-amber-400">
@@ -202,7 +201,7 @@
         </div>
       </section>
 
-      <!-- 5. Visual Obligatorio: Control Personal de Asistencia por Fecha Índice -->
+      <!-- 5. Control Personal por Fecha Índice -->
       <section class="bg-white p-4 rounded-xl shadow-sm border border-gray-200">
         <h3 class="text-sm font-bold text-gray-800 mb-3 flex items-center gap-2">
           <i class="fas fa-calendar-check text-brandGreen"></i> Matriz de Control Personal de Asistencia
@@ -234,7 +233,7 @@
         </div>
       </section>
 
-      <!-- 6. Tabla General Completa Interactiva -->
+      <!-- 6. Tabla General Completa -->
       <section class="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
         <div class="p-4 border-b flex justify-between items-center bg-gray-50">
           <h3 class="text-sm font-bold text-gray-800 flex items-center gap-2">
@@ -287,7 +286,7 @@
                   </span>
                 </td>
                 <td class="p-3 border text-center">
-                  <button v-if="obtenerFaltasSemana(item.DNI, item.SEMANA) === 6" @click="confirmarEliminar(item)" class="bg-red-600 text-white px-2 py-1 rounded text-[10px] font-bold hover:bg-red-700 shadow">
+                  <button v-if="obtenerFaltasSemana(item.DNI, item.SEMANA) >= 6" @click="confirmarEliminar(item)" class="bg-red-600 text-white px-2 py-1 rounded text-[10px] font-bold hover:bg-red-700 shadow">
                     <i class="fas fa-trash"></i> Eliminar
                   </button>
                 </td>
@@ -304,6 +303,8 @@
   </div>
 
   <script>
+    const API_URL = "https://script.google.com/macros/s/AKfycbwNFINW1aAROw4_KzSWzsp2--xbzZdD-WPoptxTPtNiExFelw6TTm-jFEgUfNEZdBi_/exec";
+
     const { createApp } = Vue;
 
     createApp({
@@ -369,8 +370,8 @@
         registrosFiltrados() {
           return this.asistencias.filter(item => {
             const matchBusqueda = !this.filtros.busqueda || 
-              item.DNI.toLowerCase().includes(this.filtros.busqueda.toLowerCase()) || 
-              item['APELLIDOS Y NOMBRES'].toLowerCase().includes(this.filtros.busqueda.toLowerCase());
+              item.DNI.toString().toLowerCase().includes(this.filtros.busqueda.toLowerCase()) || 
+              (item['APELLIDOS Y NOMBRES'] && item['APELLIDOS Y NOMBRES'].toLowerCase().includes(this.filtros.busqueda.toLowerCase()));
             
             const matchSemana = !this.filtros.semana || item.SEMANA == this.filtros.semana;
             const matchMes = !this.filtros.mes || item.MES === this.filtros.mes;
@@ -417,35 +418,50 @@
             default: return 'bg-gray-100 text-gray-500 px-2 py-0.5 rounded';
           }
         },
-        cargarDatos() {
+        async cargarDatos() {
           this.cargando = true;
-          if (typeof google !== 'undefined' && google.script) {
-            google.script.run
-              .withSuccessHandler(res => {
-                if (res.success) {
-                  this.asistencias = res.data;
-                  localStorage.setItem('asistencia_cache', JSON.stringify(res.data));
-                }
-                this.cargando = false;
-              })
-              .withFailureHandler(() => { this.cargando = false; })
-              .obtenerDatosAsistencia();
-          } else {
-            // Carga de respaldo local o simulación
+          try {
+            const res = await fetch(`${API_URL}?action=get`);
+            const data = await res.json();
+            if (data.success) {
+              this.asistencias = data.data;
+              localStorage.setItem('asistencia_cache', JSON.stringify(data.data));
+            } else {
+              console.error("Error devuelto por la API:", data.error);
+            }
+          } catch (err) {
+            console.warn("Fallo en red, cargando datos desde caché local", err);
             const local = localStorage.getItem('asistencia_cache');
             if (local) this.asistencias = JSON.parse(local);
+          } finally {
             this.cargando = false;
           }
         },
-        confirmarEliminar(item) {
+        async confirmarEliminar(item) {
           if (confirm(`¿Eliminar registro de ${item['APELLIDOS Y NOMBRES']} del día ${item['FECHA INDICE']} por acumular 6 faltas?`)) {
             this.cargando = true;
-            google.script.run
-              .withSuccessHandler(res => {
-                if (res.success) this.cargarDatos();
-                else alert("Error al eliminar: " + res.error);
-              })
-              .eliminarRegistro(item.DNI, item['FECHA INDICE']);
+            try {
+              const response = await fetch(API_URL, {
+                method: 'POST',
+                headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+                body: JSON.stringify({
+                  action: 'eliminar',
+                  dni: item.DNI,
+                  fechaIndice: item['FECHA INDICE']
+                })
+              });
+              const res = await response.json();
+              if (res.success) {
+                alert("Registro eliminado.");
+                this.cargarDatos();
+              } else {
+                alert("Error al eliminar: " + res.error);
+              }
+            } catch (err) {
+              alert("Error de conexión al eliminar: " + err.message);
+            } finally {
+              this.cargando = false;
+            }
           }
         }
       },

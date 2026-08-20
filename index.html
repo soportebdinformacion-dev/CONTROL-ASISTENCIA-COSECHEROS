@@ -1,552 +1,876 @@
 <!DOCTYPE html>
 <html lang="es">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Agrícola Huarmey - Control de Asistencia</title>
-    <link rel="manifest" href="manifest.json">
-    <meta name="theme-color" content="#d92b21">
-    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
-    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-    <style>
-        :root {
-            --primary-red: #d92b21;
-            --primary-green: #2e7d32;
-            --light-green: #e8f5e9;
-            --bg-light: #f4f6f8;
-            --card-bg: #ffffff;
-            --text-main: #2c3e50;
-            --alert-yellow: #f1c40f;
-            --alert-red: #e74c3c;
-        }
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>Agrícola Huarmey - Control de Asistencia</title>
 
-        body {
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            margin: 0;
-            padding: 0;
-            background-color: var(--bg-light);
-            color: var(--text-main);
-        }
+  <!-- PWA Metadata -->
+  <link rel="manifest" href="manifest.json">
+  <meta name="theme-color" content="#00873D">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 
-        header {
-            background-color: var(--card-bg);
-            padding: 12px 20px;
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
-            border-bottom: 3px solid var(--primary-green);
-        }
+  <!-- Icons & Fonts -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 
-        .brand-container {
-            display: flex;
-            align-items: center;
-            gap: 12px;
-        }
+  <style>
+    :root {
+      --primary-red: #C82333;
+      --primary-red-hover: #BD2130;
+      --primary-green: #2E7D32;
+      --light-green: #E8F5E9;
+      --green-accent: #4CAF50;
+      --bg-color: #F8F9FA;
+      --card-bg: #FFFFFF;
+      --text-main: #2C3E50;
+      --text-muted: #6C757D;
+      --border-color: #E2E8F0;
+      --warning-yellow: #FFF3CD;
+      --warning-text: #856404;
+      --danger-red: #F8D7DA;
+      --danger-text: #721C24;
+      --shadow-sm: 0 2px 4px rgba(0,0,0,0.05);
+      --shadow-md: 0 4px 12px rgba(0,0,0,0.08);
+      --radius: 12px;
+    }
 
-        .brand-logo {
-            height: 45px;
-            width: auto;
-        }
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    }
 
-        .brand-title {
-            font-size: 1.2rem;
-            font-weight: bold;
-            color: var(--primary-red);
-        }
+    body {
+      background-color: var(--bg-color);
+      color: var(--text-main);
+      padding-bottom: 30px;
+    }
 
-        .status-badge {
-            padding: 6px 12px;
-            border-radius: 20px;
-            font-size: 0.85rem;
-            font-weight: 600;
-            display: flex;
-            align-items: center;
-            gap: 6px;
-        }
+    /* Header */
+    header {
+      background: linear-gradient(135deg, #1B5E20 0%, #2E7D32 100%);
+      color: white;
+      padding: 16px 20px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      box-shadow: var(--shadow-md);
+      position: sticky;
+      top: 0;
+      z-index: 1000;
+    }
 
-        .status-online { background-color: #e8f5e9; color: #2e7d32; }
-        .status-offline { background-color: #ffebee; color: #c62828; }
+    .brand-container {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
 
-        .container {
-            padding: 15px;
-            max-width: 1400px;
-            margin: auto;
-        }
+    .brand-logo {
+      height: 48px;
+      width: auto;
+      background: white;
+      padding: 4px;
+      border-radius: 8px;
+    }
 
-        /* Metric Cards */
-        .metrics-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-            gap: 12px;
-            margin-bottom: 20px;
-        }
+    .brand-title h1 {
+      font-size: 1.2rem;
+      font-weight: 700;
+      letter-spacing: 0.5px;
+      margin: 0;
+    }
 
-        .metric-card {
-            background: var(--card-bg);
-            padding: 15px;
-            border-radius: 10px;
-            box-shadow: 0 2px 5px rgba(0,0,0,0.05);
-            border-left: 5px solid var(--primary-red);
-            display: flex;
-            flex-direction: column;
-            justify-content: space-between;
-        }
+    .brand-title p {
+      font-size: 0.75rem;
+      opacity: 0.85;
+    }
 
-        .metric-card.green { border-left-color: var(--primary-green); }
-        .metric-card.yellow { border-left-color: var(--alert-yellow); }
+    .status-badge {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      background: rgba(255, 255, 255, 0.2);
+      padding: 6px 12px;
+      border-radius: 20px;
+      font-size: 0.8rem;
+      font-weight: 600;
+    }
 
-        .metric-title {
-            font-size: 0.8rem;
-            text-transform: uppercase;
-            color: #666;
-            font-weight: bold;
-        }
+    .status-dot {
+      width: 10px;
+      height: 10px;
+      border-radius: 50%;
+      background-color: #4CAF50;
+    }
 
-        .metric-value {
-            font-size: 1.8rem;
-            font-weight: bold;
-            margin-top: 8px;
-            color: var(--text-main);
-        }
+    .status-dot.offline {
+      background-color: #FF9800;
+    }
 
-        /* Charts */
-        .dashboard-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
-            gap: 15px;
-            margin-bottom: 20px;
-        }
+    /* Main Container */
+    .container {
+      max-width: 1400px;
+      margin: 0 auto;
+      padding: 16px;
+    }
 
-        .chart-card {
-            background: var(--card-bg);
-            padding: 15px;
-            border-radius: 10px;
-            box-shadow: 0 2px 5px rgba(0,0,0,0.05);
-        }
+    /* Action Toolbar */
+    .toolbar {
+      display: flex;
+      gap: 12px;
+      margin-bottom: 20px;
+      flex-wrap: wrap;
+    }
 
-        /* Filters */
-        .filter-section {
-            background: var(--card-bg);
-            padding: 15px;
-            border-radius: 10px;
-            margin-bottom: 20px;
-            box-shadow: 0 2px 5px rgba(0,0,0,0.05);
-        }
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      padding: 12px 20px;
+      border-radius: var(--radius);
+      border: none;
+      font-weight: 600;
+      font-size: 0.9rem;
+      cursor: pointer;
+      transition: all 0.2s ease;
+      box-shadow: var(--shadow-sm);
+    }
 
-        .filter-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
-            gap: 10px;
-        }
+    .btn-primary {
+      background-color: var(--primary-green);
+      color: white;
+    }
 
-        .form-control {
-            width: 100%;
-            padding: 8px 12px;
-            border: 1px solid #ccc;
-            border-radius: 6px;
-            box-sizing: border-box;
-            font-size: 0.9rem;
-        }
+    .btn-primary:hover {
+      background-color: #1B5E20;
+    }
 
-        /* Tables */
-        .table-container {
-            background: var(--card-bg);
-            padding: 15px;
-            border-radius: 10px;
-            overflow-x: auto;
-            box-shadow: 0 2px 5px rgba(0,0,0,0.05);
-            margin-bottom: 20px;
-        }
+    .btn-secondary {
+      background-color: var(--primary-red);
+      color: white;
+    }
 
-        table {
-            width: 100%;
-            border-collapse: collapse;
-            font-size: 0.85rem;
-            text-align: left;
-        }
+    .btn-secondary:hover {
+      background-color: var(--primary-red-hover);
+    }
 
-        th, td {
-            padding: 10px 12px;
-            border-bottom: 1px solid #eee;
-            white-space: nowrap;
-        }
+    .btn-outline {
+      background-color: white;
+      border: 1px solid var(--border-color);
+      color: var(--text-main);
+    }
 
-        th {
-            background-color: var(--light-green);
-            color: var(--primary-green);
-            font-weight: bold;
-        }
+    .btn-outline:hover {
+      background-color: #F1F5F9;
+    }
 
-        .badge-status {
-            padding: 4px 8px;
-            border-radius: 4px;
-            font-weight: bold;
-            font-size: 0.75rem;
-        }
+    /* Metric Cards Grid */
+    .kpi-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+      gap: 16px;
+      margin-bottom: 24px;
+    }
 
-        .badge-asistio { background-color: #d4edda; color: #155724; }
-        .badge-falto { background-color: #f8d7da; color: #721c24; }
-        .badge-feriado { background-color: #d1ecf1; color: #0c5460; }
-        .badge-inactivo { background-color: #e2e3e5; color: #383d41; }
+    .kpi-card {
+      background: var(--card-bg);
+      border-radius: var(--radius);
+      padding: 18px;
+      box-shadow: var(--shadow-sm);
+      border-left: 5px solid var(--primary-green);
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+    }
 
-        .row-warning-yellow { background-color: #fff3cd !important; }
-        .row-warning-red { background-color: #f8d7da !important; }
+    .kpi-card.alert-falto { border-left-color: var(--primary-red); }
+    .kpi-card.alert-marcacion { border-left-color: #FF9800; }
+    .kpi-card.alert-tareo { border-left-color: #0288D1; }
+    .kpi-card.alert-doble { border-left-color: #9C27B0; }
 
-        .btn-sync {
-            background-color: var(--primary-green);
-            color: white;
-            border: none;
-            padding: 10px 20px;
-            border-radius: 6px;
-            cursor: pointer;
-            font-weight: bold;
-            display: flex;
-            align-items: center;
-            gap: 8px;
-            margin-bottom: 15px;
-        }
+    .kpi-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      color: var(--text-muted);
+      font-size: 0.85rem;
+      font-weight: 600;
+      text-transform: uppercase;
+    }
 
-        .btn-sync:hover { opacity: 0.9; }
-    </style>
+    .kpi-value {
+      font-size: 1.8rem;
+      font-weight: 700;
+      margin-top: 10px;
+      color: var(--text-main);
+    }
+
+    /* Dashboard Charts Grid */
+    .dashboard-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+      gap: 20px;
+      margin-bottom: 24px;
+    }
+
+    .chart-card {
+      background: var(--card-bg);
+      border-radius: var(--radius);
+      padding: 20px;
+      box-shadow: var(--shadow-sm);
+    }
+
+    .chart-card h3 {
+      font-size: 1rem;
+      margin-bottom: 16px;
+      color: var(--text-main);
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .chart-container {
+      position: relative;
+      height: 220px;
+      width: 100%;
+    }
+
+    /* Filters Section */
+    .filter-card {
+      background: var(--card-bg);
+      border-radius: var(--radius);
+      padding: 20px;
+      margin-bottom: 24px;
+      box-shadow: var(--shadow-sm);
+    }
+
+    .filter-card h3 {
+      font-size: 1rem;
+      margin-bottom: 16px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .filter-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+      gap: 12px;
+    }
+
+    .filter-group {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+
+    .filter-group label {
+      font-size: 0.75rem;
+      font-weight: 700;
+      color: var(--text-muted);
+      text-transform: uppercase;
+    }
+
+    .filter-control {
+      padding: 10px 12px;
+      border-radius: 8px;
+      border: 1px solid var(--border-color);
+      font-size: 0.9rem;
+      outline: none;
+      background-color: #FAFAFA;
+      transition: border-color 0.2s;
+    }
+
+    .filter-control:focus {
+      border-color: var(--primary-green);
+      background-color: white;
+    }
+
+    /* Data Table Section */
+    .table-card {
+      background: var(--card-bg);
+      border-radius: var(--radius);
+      padding: 20px;
+      box-shadow: var(--shadow-sm);
+      overflow: hidden;
+    }
+
+    .table-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 16px;
+    }
+
+    .table-responsive {
+      overflow-x: auto;
+      max-height: 550px;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 0.85rem;
+      text-align: left;
+    }
+
+    th {
+      background-color: var(--light-green);
+      color: var(--primary-green);
+      padding: 12px;
+      font-weight: 700;
+      position: sticky;
+      top: 0;
+      z-index: 10;
+      white-space: nowrap;
+    }
+
+    td {
+      padding: 12px;
+      border-bottom: 1px solid var(--border-color);
+      white-space: nowrap;
+    }
+
+    tr:hover {
+      background-color: #F8FAFC;
+    }
+
+    /* Badges & Alerts */
+    .badge {
+      padding: 4px 8px;
+      border-radius: 12px;
+      font-size: 0.75rem;
+      font-weight: 600;
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+    }
+
+    .badge-asistio { background: #E8F5E9; color: #2E7D32; }
+    .badge-falto { background: #FFEBEE; color: #C82333; }
+    .badge-feriado { background: #E0F7FA; color: #00838F; }
+    .badge-inactivo { background: #ECEFF1; color: #546E7A; }
+
+    /* Rule Highlights */
+    tr.alert-warning-row {
+      background-color: var(--warning-yellow) !important;
+    }
+
+    tr.alert-danger-row {
+      background-color: var(--danger-red) !important;
+    }
+
+    .badge-alert-3 {
+      background-color: #FFC107;
+      color: #000;
+    }
+
+    .badge-alert-6 {
+      background-color: #DC3545;
+      color: #FFF;
+      animation: pulse 1.5s infinite;
+    }
+
+    @keyframes pulse {
+      0% { opacity: 1; }
+      50% { opacity: 0.6; }
+      100% { opacity: 1; }
+    }
+
+    /* Responsiveness */
+    @media (max-width: 768px) {
+      .toolbar { flex-direction: column; }
+      .btn { width: 100%; }
+      header { flex-direction: column; gap: 10px; align-items: flex-start; }
+      .status-badge { align-self: flex-end; }
+    }
+  </style>
 </head>
 <body>
 
-    <header>
-        <div class="brand-container">
-            <i class="fa-solid fa-leaf" style="color: var(--primary-green); font-size: 1.8rem;"></i>
-            <span class="brand-title">Agrícola Huarmey</span>
-        </div>
-        <div id="connectionStatus" class="status-badge status-online">
-            <i class="fa-solid fa-wifi"></i> <span>En línea</span>
-        </div>
-    </header>
+  <!-- Header Header -->
+  <header>
+    <div class="brand-container">
+      <img src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==" id="appLogo" class="brand-logo" alt="Huarmey Logo">
+      <div class="brand-title">
+        <h1>Agrícola Huarmey</h1>
+        <p>Control de Asistencia - Cosecha</p>
+      </div>
+    </div>
+    <div class="status-badge">
+      <div id="statusDot" class="status-dot"></div>
+      <span id="statusText">En Línea</span>
+    </div>
+  </header>
 
-    <div class="container">
-        
-        <button id="syncBtn" class="btn-sync" onclick="syncData()">
-            <i class="fa-solid fa-rotate"></i> Sincronizar con Google Sheets
-        </button>
+  <div class="container">
 
-        <!-- KPI Cards -->
-        <div class="metrics-grid">
-            <div class="metric-card green">
-                <span class="metric-title">Total Asistencias</span>
-                <span id="kpiAsistencias" class="metric-value">0</span>
-            </div>
-            <div class="metric-card">
-                <span class="metric-title">Faltas (Alerta)</span>
-                <span id="kpiFaltas" class="metric-value">0</span>
-            </div>
-            <div class="metric-card yellow">
-                <span class="metric-title">Falta Marcación</span>
-                <span id="kpiFaltaMarcacion" class="metric-value">0</span>
-            </div>
-            <div class="metric-card yellow">
-                <span class="metric-title">Falta Tareo</span>
-                <span id="kpiFaltaTareo" class="metric-value">0</span>
-            </div>
-            <div class="metric-card">
-                <span class="metric-title">Falta Tareo y Marcación</span>
-                <span id="kpiFaltaAmbos" class="metric-value">0</span>
-            </div>
-        </div>
-
-        <!-- Dashboards -->
-        <div class="dashboard-grid">
-            <div class="chart-card">
-                <h4><i class="fa-solid fa-venus-mars"></i> Distribución por Sexo</h4>
-                <canvas id="chartSexo"></canvas>
-            </div>
-            <div class="chart-card">
-                <h4><i class="fa-solid fa-clock-rotate-left"></i> Histórico</h4>
-                <canvas id="chartHistorico"></canvas>
-            </div>
-            <div class="chart-card">
-                <h4><i class="fa-solid fa-briefcase"></i> Modalidad de Trabajo</h4>
-                <canvas id="chartModalidad"></canvas>
-            </div>
-        </div>
-
-        <!-- Filters -->
-        <div class="filter-section">
-            <div class="filter-grid">
-                <input type="text" id="filterSearch" class="form-control" placeholder="Buscar DNI / Nombres..." oninput="applyFilters()">
-                <select id="filterSemana" class="form-control" onchange="applyFilters()">
-                    <option value="">Todas las Semanas</option>
-                </select>
-                <select id="filterMes" class="form-control" onchange="applyFilters()">
-                    <option value="">Todos los Meses</option>
-                </select>
-                <select id="filterAlerta" class="form-control" onchange="applyFilters()">
-                    <option value="">Todas las Alertas</option>
-                    <option value="FALTO">FALTO</option>
-                </select>
-                <select id="filterEstado" class="form-control" onchange="applyFilters()">
-                    <option value="">Todos los Estados</option>
-                    <option value="FALTA MARCACION">FALTA MARCACION</option>
-                    <option value="FALTA TAREO">FALTA TAREO</option>
-                    <option value="FALTA TAREO Y FALTA MARCACION">FALTA TAREO Y MARCACION</option>
-                </select>
-            </div>
-        </div>
-
-        <!-- Matrix Table -->
-        <div class="table-container">
-            <h3><i class="fa-solid fa-calendar-days"></i> Matriz de Asistencia por Fechas</h3>
-            <table id="matrixTable">
-                <thead>
-                    <tr id="matrixHeader">
-                        <th>DNI</th>
-                        <th>Apellidos y Nombres</th>
-                        <!-- Fechas dinámicas -->
-                    </tr>
-                </thead>
-                <tbody id="matrixBody"></tbody>
-            </table>
-        </div>
-
-        <!-- Detailed Table -->
-        <div class="table-container">
-            <h3><i class="fa-solid fa-list-check"></i> Detalle General de Asistencia</h3>
-            <table id="detailTable">
-                <thead>
-                    <tr>
-                        <th>DNI</th>
-                        <th>Nombres</th>
-                        <th>Semana</th>
-                        <th>Mes</th>
-                        <th>Día</th>
-                        <th>Fecha</th>
-                        <th>Alerta</th>
-                        <th>Estado Asistencia</th>
-                        <th>Histórico</th>
-                        <th>Modalidad</th>
-                        <th>Placa</th>
-                        <th>Ruta</th>
-                        <th>Sexo</th>
-                    </tr>
-                </thead>
-                <tbody id="detailBody"></tbody>
-            </table>
-        </div>
-
+    <!-- Top Actions -->
+    <div class="toolbar">
+      <button class="btn btn-primary" onclick="syncData()">
+        <i class="fa-solid fa-rotate"></i> Sincronizar con Google Sheets
+      </button>
+      <button class="btn btn-secondary" onclick="openNewRecordModal()">
+        <i class="fa-solid fa-user-plus"></i> Registrar Marcar Asistencia
+      </button>
+      <button class="btn btn-outline" onclick="exportFilteredData()">
+        <i class="fa-solid fa-file-excel"></i> Exportar Vista
+      </button>
     </div>
 
-    <script>
-        let db;
-        let records = [];
-        let chartSexo, chartHistorico, chartModalidad;
+    <!-- KPI Metrics -->
+    <div class="kpi-grid">
+      <div class="kpi-card">
+        <div class="kpi-header">
+          <span>Total Asistencia</span>
+          <i class="fa-solid fa-user-check text-green"></i>
+        </div>
+        <div class="kpi-value" id="kpiAsistio">0</div>
+      </div>
+      <div class="kpi-card alert-falto">
+        <div class="kpi-header">
+          <span>Total Faltas (Alerta)</span>
+          <i class="fa-solid fa-user-xmark text-red"></i>
+        </div>
+        <div class="kpi-value" id="kpiFalto">0</div>
+      </div>
+      <div class="kpi-card alert-marcacion">
+        <div class="kpi-header">
+          <span>Falta Marcación</span>
+          <i class="fa-solid fa-clock text-orange"></i>
+        </div>
+        <div class="kpi-value" id="kpiFaltaMarcacion">0</div>
+      </div>
+      <div class="kpi-card alert-tareo">
+        <div class="kpi-header">
+          <span>Falta Tareo</span>
+          <i class="fa-solid fa-clipboard-list text-blue"></i>
+        </div>
+        <div class="kpi-value" id="kpiFaltaTareo">0</div>
+      </div>
+      <div class="kpi-card alert-doble">
+        <div class="kpi-header">
+          <span>Falta Tareo y Marcación</span>
+          <i class="fa-solid fa-triangle-exclamation text-purple"></i>
+        </div>
+        <div class="kpi-value" id="kpiFaltaAmbos">0</div>
+      </div>
+    </div>
 
-        // Init IndexedDB
-        const request = indexedDB.open("AgricolaHuarmeyDB", 1);
+    <!-- Dashboards Visuales -->
+    <div class="dashboard-grid">
+      <div class="chart-card">
+        <h3><i class="fa-solid fa-venus-mars"></i> Distribución por Sexo</h3>
+        <div class="chart-container">
+          <canvas id="chartSexo"></canvas>
+        </div>
+      </div>
+      <div class="chart-card">
+        <h3><i class="fa-solid fa-timeline"></i> Distribución por Histórico</h3>
+        <div class="chart-container">
+          <canvas id="chartHistorico"></canvas>
+        </div>
+      </div>
+      <div class="chart-card">
+        <h3><i class="fa-solid fa-briefcase"></i> Distribución por Modalidad</h3>
+        <div class="chart-container">
+          <canvas id="chartModalidad"></canvas>
+        </div>
+      </div>
+    </div>
+
+    <!-- Filter Section -->
+    <div class="filter-card">
+      <h3><i class="fa-solid fa-filter"></i> Filtros de Busqueda Avanzada</h3>
+      <div class="filter-grid">
+        <div class="filter-group">
+          <label>DNI / Personal</label>
+          <input type="text" id="filterSearch" class="filter-control" placeholder="Buscar por DNI o Nombres..." oninput="applyFilters()">
+        </div>
+        <div class="filter-group">
+          <label>Semana</label>
+          <select id="filterSemana" class="filter-control" onchange="applyFilters()">
+            <option value="">Todas</option>
+          </select>
+        </div>
+        <div class="filter-group">
+          <label>Mes</label>
+          <select id="filterMes" class="filter-control" onchange="applyFilters()">
+            <option value="">Todos</option>
+          </select>
+        </div>
+        <div class="filter-group">
+          <label>Alerta</label>
+          <select id="filterAlerta" class="filter-control" onchange="applyFilters()">
+            <option value="">Todas</option>
+            <option value="FALTO">FALTO</option>
+            <option value="NORMAL">NORMAL</option>
+          </select>
+        </div>
+        <div class="filter-group">
+          <label>Estado Asistencia</label>
+          <select id="filterEstado" class="filter-control" onchange="applyFilters()">
+            <option value="">Todos</option>
+            <option value="ASISTIO">ASISTIO</option>
+            <option value="FALTA MARCACION">FALTA MARCACION</option>
+            <option value="FALTA TAREO">FALTA TAREO</option>
+            <option value="FALTA TAREO Y FALTA MARCACION">FALTA TAREO Y MARCACION</option>
+          </select>
+        </div>
+        <div class="filter-group">
+          <label>Filtro Faltas Semanales</label>
+          <select id="filterConsecutivas" class="filter-control" onchange="applyFilters()">
+            <option value="">Todos</option>
+            <option value="3">&gt; 3 Faltas (Amarillo)</option>
+            <option value="6">6 Faltas Consecutivas (Rojo)</option>
+          </select>
+        </div>
+      </div>
+    </div>
+
+    <!-- Main Data Table -->
+    <div class="table-card">
+      <div class="table-header">
+        <h3><i class="fa-solid fa-table"></i> Registros de Asistencia Cosecha</h3>
+        <span id="recordCount" style="font-size: 0.85rem; color: var(--text-muted);">0 registros encontrados</span>
+      </div>
+      <div class="table-responsive">
+        <table id="attendanceTable">
+          <thead>
+            <tr>
+              <th>Acciones</th>
+              <th>DNI</th>
+              <th>Apellidos y Nombres</th>
+              <th>Semana</th>
+              <th>Mes</th>
+              <th>Día</th>
+              <th>Fecha Índice</th>
+              <th>Alerta</th>
+              <th>Estado Asistencia</th>
+              <th>Histórico</th>
+              <th>Modalidad</th>
+              <th>Placa</th>
+              <th>Ruta</th>
+              <th>Sexo</th>
+              <th>Alertas Semanales</th>
+            </tr>
+          </thead>
+          <tbody id="tableBody">
+            <!-- Dynamic Injection -->
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+  </div>
+
+  <script>
+    // App State and IndexedDB Setup
+    const SCRIPT_URL = "URL_DE_TU_GOOGLE_APPS_SCRIPT_DEPLOYMENT";
+    let db;
+    let rawData = [];
+    let filteredData = [];
+    let chartSexoInst, chartHistInst, chartModInst;
+
+    // Initialize Database
+    function initDB() {
+      return new Promise((resolve, reject) => {
+        const request = indexedDB.open("HuarmeyAsistenciaDB", 1);
         request.onupgradeneeded = (e) => {
-            db = e.target.result;
-            if (!db.objectStoreNames.contains("asistencia")) {
-                db.createObjectStore("asistencia", { keyPath: "id", autoIncrement: true });
-            }
+          db = e.target.result;
+          if (!db.objectStoreNames.contains("asistencia")) {
+            db.createObjectStore("asistencia", { keyPath: "id", autoIncrement: true });
+          }
         };
         request.onsuccess = (e) => {
-            db = e.target.result;
-            loadDataFromDB();
+          db = e.target.result;
+          resolve();
         };
+        request.onerror = (e) => reject(e);
+      });
+    }
 
-        // Network Status
-        window.addEventListener('online', updateNetworkStatus);
-        window.addEventListener('offline', updateNetworkStatus);
+    // Register Service Worker
+    if ('serviceWorker' in navigator) {
+      window.addEventListener('load', () => {
+        navigator.serviceWorker.register('./service-worker.js')
+          .then(reg => console.log('SW registrado con éxito'))
+          .catch(err => console.error('Error al registrar SW:', err));
+      });
+    }
 
-        function updateNetworkStatus() {
-            const status = document.getElementById('connectionStatus');
-            if (navigator.onLine) {
-                status.className = "status-badge status-online";
-                status.innerHTML = `<i class="fa-solid fa-wifi"></i> En línea`;
-            } else {
-                status.className = "status-badge status-offline";
-                status.innerHTML = `<i class="fa-solid fa-plane"></i> Modo Offline`;
-            }
+    // Network Status Listeners
+    window.addEventListener('online', updateOnlineStatus);
+    window.addEventListener('offline', updateOnlineStatus);
+
+    function updateOnlineStatus() {
+      const dot = document.getElementById('statusDot');
+      const text = document.getElementById('statusText');
+      if (navigator.onLine) {
+        dot.classList.remove('offline');
+        text.innerText = 'En Línea';
+      } else {
+        dot.classList.add('offline');
+        text.innerText = 'Modo Offline';
+      }
+    }
+
+    // App Initialization
+    document.addEventListener('DOMContentLoaded', async () => {
+      updateOnlineStatus();
+      await initDB();
+      loadLocalData();
+    });
+
+    // Save Data to IndexedDB
+    async function saveToLocal(data) {
+      const tx = db.transaction("asistencia", "readwrite");
+      const store = tx.objectStore("asistencia");
+      await store.clear();
+      data.forEach(item => store.add(item));
+    }
+
+    // Load Data Local First
+    function loadLocalData() {
+      const tx = db.transaction("asistencia", "readonly");
+      const store = tx.objectStore("asistencia");
+      const request = store.getAll();
+      request.onsuccess = () => {
+        if (request.result && request.result.length > 0) {
+          rawData = request.result;
+          processAndRenderData();
+        } else {
+          syncData(); // Auto sync if empty
+        }
+      };
+    }
+
+    // Sync with Google Sheets Script API
+    async function syncData() {
+      if (!navigator.onLine) {
+        alert("Modo Offline: No hay conexión a internet para sincronizar.");
+        return;
+      }
+      try {
+        const response = await fetch(`${SCRIPT_URL}?action=getData`);
+        const result = await response.json();
+        if (result.status === "success") {
+          rawData = result.data;
+          await saveToLocal(rawData);
+          processAndRenderData();
+          populateFilterDropdowns();
+          alert("Sincronización exitosa con Google Sheets.");
+        }
+      } catch (error) {
+        console.error("Error sincronizando:", error);
+        alert("Error de conexión al sincronizar con Google Sheets.");
+      }
+    }
+
+    // Process & Render Data, Dashboard and Metrics
+    function processAndRenderData() {
+      calculateFaltasSemanales();
+      applyFilters();
+    }
+
+    // Calculation logic for weekly absences per DNI
+    function calculateFaltasSemanales() {
+      const userWeeklyAbsences = {};
+
+      rawData.forEach(item => {
+        const key = `${item.DNI}_${item.SEMANA}`;
+        if (!userWeeklyAbsences[key]) userWeeklyAbsences[key] = 0;
+        if (item.ALERTA === 'FALTO' || item.ESTADO_ASISTENCIA.includes('FALTA')) {
+          userWeeklyAbsences[key]++;
+        }
+      });
+
+      rawData.forEach(item => {
+        const key = `${item.DNI}_${item.SEMANA}`;
+        item.total_faltas_semana = userWeeklyAbsences[key] || 0;
+      });
+    }
+
+    function populateFilterDropdowns() {
+      const semanas = [...new Set(rawData.map(i => i.SEMANA))].sort();
+      const meses = [...new Set(rawData.map(i => i.MES))].sort();
+
+      const selectSemana = document.getElementById('filterSemana');
+      selectSemana.innerHTML = '<option value="">Todas</option>';
+      semanas.forEach(s => selectSemana.innerHTML += `<option value="${s}">${s}</option>`);
+
+      const selectMes = document.getElementById('filterMes');
+      selectMes.innerHTML = '<option value="">Todos</option>';
+      meses.forEach(m => selectMes.innerHTML += `<option value="${m}">${m}</option>`);
+    }
+
+    // Filters Implementation
+    function applyFilters() {
+      const search = document.getElementById('filterSearch').value.toLowerCase();
+      const semana = document.getElementById('filterSemana').value;
+      const mes = document.getElementById('filterMes').value;
+      const alerta = document.getElementById('filterAlerta').value;
+      const estado = document.getElementById('filterEstado').value;
+      const consecutivas = document.getElementById('filterConsecutivas').value;
+
+      filteredData = rawData.filter(item => {
+        const matchSearch = item.DNI.toString().toLowerCase().includes(search) || 
+                            item.APELLIDOS_NOMBRES.toLowerCase().includes(search);
+        const matchSemana = !semana || item.SEMANA.toString() === semana;
+        const matchMes = !mes || item.MES === mes;
+        const matchAlerta = !alerta || item.ALERTA === alerta;
+        const matchEstado = !estado || item.ESTADO_ASISTENCIA === estado;
+
+        let matchConsecutivas = true;
+        if (consecutivas === "3") matchConsecutivas = item.total_faltas_semana > 3;
+        if (consecutivas === "6") matchConsecutivas = item.total_faltas_semana >= 6;
+
+        return matchSearch && matchSemana && matchMes && matchAlerta && matchEstado && matchConsecutivas;
+      });
+
+      renderKPIs(filteredData);
+      renderCharts(filteredData);
+      renderTable(filteredData);
+    }
+
+    // KPIs Logic
+    function renderKPIs(data) {
+      const asistio = data.filter(i => i.ESTADO_ASISTENCIA === 'ASISTIO').length;
+      const faltoAlerta = data.filter(i => i.ALERTA === 'FALTO').length;
+      const faltaMarcacion = data.filter(i => i.ESTADO_ASISTENCIA === 'FALTA MARCACION').length;
+      const faltaTareo = data.filter(i => i.ESTADO_ASISTENCIA === 'FALTA TAREO').length;
+      const faltaAmbos = data.filter(i => i.ESTADO_ASISTENCIA === 'FALTA TAREO Y FALTA MARCACION').length;
+
+      document.getElementById('kpiAsistio').innerText = asistio;
+      document.getElementById('kpiFalto').innerText = faltoAlerta;
+      document.getElementById('kpiFaltaMarcacion').innerText = faltaMarcacion;
+      document.getElementById('kpiFaltaTareo').innerText = faltaTareo;
+      document.getElementById('kpiFaltaAmbos').innerText = faltaAmbos;
+    }
+
+    // Render Dynamic Charts
+    function renderCharts(data) {
+      // 1. Chart Sexo
+      const sexoCount = { Masculino: 0, Femenino: 0 };
+      data.forEach(i => {
+        if (i.SEXO === 'M') sexoCount.Masculino++;
+        if (i.SEXO === 'F') sexoCount.Femenino++;
+      });
+
+      if (chartSexoInst) chartSexoInst.destroy();
+      chartSexoInst = new Chart(document.getElementById('chartSexo'), {
+        type: 'doughnut',
+        data: {
+          labels: ['Masculino (M)', 'Femenino (F)'],
+          datasets: [{
+            data: [sexoCount.Masculino, sexoCount.Femenino],
+            backgroundColor: ['#1976D2', '#E91E63']
+          }]
+        },
+        options: { responsive: true, maintainAspectRatio: false }
+      });
+
+      // 2. Chart Historico
+      const histCount = {};
+      data.forEach(i => histCount[i.HISTORICO] = (histCount[i.HISTORICO] || 0) + 1);
+
+      if (chartHistInst) chartHistInst.destroy();
+      chartHistInst = new Chart(document.getElementById('chartHistorico'), {
+        type: 'pie',
+        data: {
+          labels: Object.keys(histCount),
+          datasets: [{
+            data: Object.values(histCount),
+            backgroundColor: ['#2E7D32', '#FF9800', '#9C27B0', '#00BCD4']
+          }]
+        },
+        options: { responsive: true, maintainAspectRatio: false }
+      });
+
+      // 3. Chart Modalidad
+      const modCount = {};
+      data.forEach(i => modCount[i.MODALIDAD] = (modCount[i.MODALIDAD] || 0) + 1);
+
+      if (chartModInst) chartModInst.destroy();
+      chartModInst = new Chart(document.getElementById('chartModalidad'), {
+        type: 'bar',
+        data: {
+          labels: Object.keys(modCount),
+          datasets: [{
+            label: 'Total Personal',
+            data: Object.values(modCount),
+            backgroundColor: '#2E7D32'
+          }]
+        },
+        options: { responsive: true, maintainAspectRatio: false }
+      });
+    }
+
+    // Render Main Interactive Table
+    function renderTable(data) {
+      const tbody = document.getElementById('tableBody');
+      tbody.innerHTML = '';
+      document.getElementById('recordCount').innerText = `${data.length} registros encontrados`;
+
+      data.forEach(item => {
+        const tr = document.createElement('tr');
+
+        // Apply rules criteria coloring
+        if (item.total_faltas_semana >= 6) {
+          tr.classList.add('alert-danger-row');
+        } else if (item.total_faltas_semana > 3) {
+          tr.classList.add('alert-warning-row');
         }
 
-        // Dummy Data Generator for Initial Render
-        function loadDataFromDB() {
-            const tx = db.transaction("asistencia", "readonly");
-            const store = tx.objectStore("asistencia");
-            const req = store.getAll();
-            req.onsuccess = () => {
-                records = req.result;
-                if (records.length === 0) {
-                    records = generateMockData();
-                }
-                renderApp();
-            };
+        let stateBadgeClass = 'badge-inactivo';
+        if (item.FECHA_INDICE === 'ASISTIO') stateBadgeClass = 'badge-asistio';
+        if (item.FECHA_INDICE === 'FALTO') stateBadgeClass = 'badge-falto';
+        if (item.FECHA_INDICE === 'FERIADO') stateBadgeClass = 'badge-feriado';
+
+        let alertBadgeHtml = '-';
+        if (item.total_faltas_semana >= 6) {
+          alertBadgeHtml = `<span class="badge badge-alert-6"><i class="fa-solid fa-triangle-exclamation"></i> 6 Faltas (Eliminar)</span>`;
+        } else if (item.total_faltas_semana > 3) {
+          alertBadgeHtml = `<span class="badge badge-alert-3"><i class="fa-solid fa-circle-exclamation"></i> > 3 Faltas</span>`;
         }
 
-        function generateMockData() {
-            return [
-                { dni: "70123456", nombres: "Perez Juan", semana: "W12", mes: "Marzo", dia: "Lun", fecha: "2026-03-01", alerta: "OK", estado: "ASISTIO", historico: "Reingreso", modalidad: "Destajo", placa: "ABC-123", ruta: "Ruta 1", sexo: "M", faltasSemana: 1 },
-                { dni: "70123456", nombres: "Perez Juan", semana: "W12", mes: "Marzo", dia: "Mar", fecha: "2026-03-02", alerta: "FALTO", estado: "FALTA MARCACION", historico: "Reingreso", modalidad: "Destajo", placa: "ABC-123", ruta: "Ruta 1", sexo: "M", faltasSemana: 4 },
-                { dni: "80123456", nombres: "Gomez Maria", semana: "W12", mes: "Marzo", dia: "Lun", fecha: "2026-03-01", alerta: "FALTO", estado: "FALTA TAREO Y FALTA MARCACION", historico: "Nuevo", modalidad: "Jornal", placa: "XYZ-987", ruta: "Ruta 2", sexo: "F", faltasSemana: 6 }
-            ];
-        }
+        tr.innerHTML = `
+          <td>
+            ${item.total_faltas_semana >= 6 ? 
+              `<button class="btn btn-secondary" style="padding:4px 8px; font-size:0.75rem;" onclick="deleteRecord('${item.DNI}')"><i class="fa-solid fa-trash"></i></button>` 
+              : '-'}
+          </td>
+          <td><strong>${item.DNI}</strong></td>
+          <td>${item.APELLIDOS_NOMBRES}</td>
+          <td>${item.SEMANA}</td>
+          <td>${item.MES}</td>
+          <td>${item.DIA}</td>
+          <td><span class="badge ${stateBadgeClass}">${item.FECHA_INDICE}</span></td>
+          <td><span class="badge ${item.ALERTA === 'FALTO' ? 'badge-falto' : 'badge-asistio'}">${item.ALERTA}</span></td>
+          <td>${item.ESTADO_ASISTENCIA}</td>
+          <td>${item.HISTORICO}</td>
+          <td>${item.MODALIDAD}</td>
+          <td>${item.PLACA || '-'}</td>
+          <td>${item.RUTA || '-'}</td>
+          <td><i class="fa-solid ${item.SEXO === 'M' ? 'fa-mars text-blue' : 'fa-venus text-pink'}"></i> ${item.SEXO}</td>
+          <td>${alertBadgeHtml}</td>
+        `;
+        tbody.appendChild(tr);
+      });
+    }
 
-        function renderApp() {
-            updateKPIs();
-            renderCharts();
-            populateFilters();
-            renderMatrixTable();
-            renderDetailTable();
-        }
-
-        function updateKPIs() {
-            document.getElementById('kpiAsistencias').innerText = records.filter(r => r.estado === 'ASISTIO').length;
-            document.getElementById('kpiFaltas').innerText = records.filter(r => r.alerta === 'FALTO').length;
-            document.getElementById('kpiFaltaMarcacion').innerText = records.filter(r => r.estado === 'FALTA MARCACION').length;
-            document.getElementById('kpiFaltaTareo').innerText = records.filter(r => r.estado === 'FALTA TAREO').length;
-            document.getElementById('kpiFaltaAmbos').innerText = records.filter(r => r.estado === 'FALTA TAREO Y FALTA MARCACION').length;
-        }
-
-        function renderCharts() {
-            const countSexo = { M: 0, F: 0 };
-            const countHist = {};
-            const countMod = {};
-
-            records.forEach(r => {
-                if (r.sexo) countSexo[r.sexo] = (countSexo[r.sexo] || 0) + 1;
-                if (r.historico) countHist[r.historico] = (countHist[r.historico] || 0) + 1;
-                if (r.modalidad) countMod[r.modalidad] = (countMod[r.modalidad] || 0) + 1;
-            });
-
-            if (chartSexo) chartSexo.destroy();
-            chartSexo = new Chart(document.getElementById('chartSexo'), {
-                type: 'doughnut',
-                data: {
-                    labels: ['Masculino', 'Femenino'],
-                    datasets: [{ data: [countSexo.M, countSexo.F], backgroundColor: ['#2e7d32', '#d92b21'] }]
-                }
-            });
-
-            if (chartHistorico) chartHistorico.destroy();
-            chartHistorico = new Chart(document.getElementById('chartHistorico'), {
-                type: 'bar',
-                data: {
-                    labels: Object.keys(countHist),
-                    datasets: [{ label: 'Histórico', data: Object.values(countHist), backgroundColor: '#2e7d32' }]
-                }
-            });
-
-            if (chartModalidad) chartModalidad.destroy();
-            chartModalidad = new Chart(document.getElementById('chartModalidad'), {
-                type: 'pie',
-                data: {
-                    labels: Object.keys(countMod),
-                    datasets: [{ data: Object.values(countMod), backgroundColor: ['#f1c40f', '#2e7d32', '#d92b21'] }]
-                }
-            });
-        }
-
-        function populateFilters() {
-            const semanas = [...new Set(records.map(r => r.semana))];
-            const meses = [...new Set(records.map(r => r.mes))];
-            
-            const selSemana = document.getElementById('filterSemana');
-            selSemana.innerHTML = '<option value="">Todas las Semanas</option>' + semanas.map(s => `<option value="${s}">${s}</option>`).join('');
-
-            const selMes = document.getElementById('filterMes');
-            selMes.innerHTML = '<option value="">Todos los Meses</option>' + meses.map(m => `<option value="${m}">${m}</option>`).join('');
-        }
-
-        function getFilteredRecords() {
-            const q = document.getElementById('filterSearch').value.toLowerCase();
-            const sem = document.getElementById('filterSemana').value;
-            const mes = document.getElementById('filterMes').value;
-            const alr = document.getElementById('filterAlerta').value;
-            const est = document.getElementById('filterEstado').value;
-
-            return records.filter(r => {
-                const matchQ = r.dni.toLowerCase().includes(q) || r.nombres.toLowerCase().includes(q);
-                const matchSem = sem === "" || r.semana === sem;
-                const matchMes = mes === "" || r.mes === mes;
-                const matchAlr = alr === "" || r.alerta === alr;
-                const matchEst = est === "" || r.estado === est;
-                return matchQ && matchSem && matchMes && matchAlr && matchEst;
-            });
-        }
-
-        function applyFilters() {
-            renderDetailTable();
-        }
-
-        function renderMatrixTable() {
-            const dates = [...new Set(records.map(r => r.fecha))].sort();
-            const headerRow = document.getElementById('matrixHeader');
-            headerRow.innerHTML = '<th>DNI</th><th>Apellidos y Nombres</th>' + dates.map(d => `<th>${d}</th>`).join('');
-
-            const workers = {};
-            records.forEach(r => {
-                if (!workers[r.dni]) workers[r.dni] = { nombres: r.nombres, dates: {} };
-                workers[r.dni].dates[r.fecha] = r.estado;
-            });
-
-            const tbody = document.getElementById('matrixBody');
-            tbody.innerHTML = Object.keys(workers).map(dni => {
-                const w = workers[dni];
-                const dateCols = dates.map(d => {
-                    const st = w.dates[d] || 'INACTIVO';
-                    let badgeClass = 'badge-inactivo';
-                    if (st === 'ASISTIO') badgeClass = 'badge-asistio';
-                    if (st === 'FALTO') badgeClass = 'badge-falto';
-                    if (st === 'FERIADO') badgeClass = 'badge-feriado';
-                    return `<td><span class="badge-status ${badgeClass}">${st}</span></td>`;
-                }).join('');
-
-                return `<tr><td>${dni}</td><td>${w.nombres}</td>${dateCols}</tr>`;
-            }).join('');
-        }
-
-        function renderDetailTable() {
-            const filtered = getFilteredRecords();
-            const tbody = document.getElementById('detailBody');
-
-            tbody.innerHTML = filtered.map(r => {
-                let alertClass = "";
-                if (r.faltasSemana >= 6) alertClass = "row-warning-red";
-                else if (r.faltasSemana > 3) alertClass = "row-warning-yellow";
-
-                return `<tr class="${alertClass}">
-                    <td>${r.dni}</td>
-                    <td>${r.nombres}</td>
-                    <td>${r.semana}</td>
-                    <td>${r.mes}</td>
-                    <td>${r.dia}</td>
-                    <td>${r.fecha}</td>
-                    <td>${r.alerta}</td>
-                    <td>${r.estado}</td>
-                    <td>${r.historico}</td>
-                    <td>${r.modalidad}</td>
-                    <td>${r.placa}</td>
-                    <td>${r.ruta}</td>
-                    <td>${r.sexo}</td>
-                </tr>`;
-            }).join('');
-        }
-
-        function syncData() {
-            if (!navigator.onLine) {
-                alert("Sin conexión. Los datos se enviarán cuando vuelvas a tener internet.");
-                return;
-            }
-            fetch("YOUR_GAS_WEB_APP_URL", {
-                method: "POST",
-                body: JSON.stringify(records)
-            })
-            .then(res => res.json())
-            .then(data => alert("Sincronización exitosa con Google Sheets."))
-            .catch(err => alert("Error al sincronizar: " + err));
-        }
-
-        // Register Service Worker
-        if ('serviceWorker' in navigator) {
-            navigator.serviceWorker.register('service-worker.js');
-        }
-    </script>
+    async function deleteRecord(dni) {
+      if (confirm(`¿Está seguro de eliminar los registros no contabilizables para el DNI: ${dni}?`)) {
+        rawData = rawData.filter(i => i.DNI.toString() !== dni.toString());
+        await saveToLocal(rawData);
+        processAndRenderData();
+      }
+    }
+  </script>
 </body>
 </html>

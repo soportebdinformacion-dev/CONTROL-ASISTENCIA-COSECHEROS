@@ -1,0 +1,1303 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Agrícola Huarmey — Control de Asistencia</title>
+    
+    <!-- PWA & Theme Meta -->
+    <link rel="manifest" href="manifest.json">
+    <meta name="theme-color" content="#2E7D32">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <link rel="apple-touch-icon" href="logo.png">
+
+    <!-- Third Party CDN (Chart.js & Lucide Icons) -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/lucide@0.294.0/dist/umd/lucide.min.js"></script>
+
+    <style>
+        /* ==========================================================================
+           2. IDENTIDAD VISUAL & ESTILOS BASE (PALETA AGRÍCOLA HUARMEY)
+           ========================================================================== */
+        :root {
+            --primary-green: #2E7D32;
+            --light-green: #E8F5E9;
+            --accent-green: #4CAF50;
+            --primary-red: #D32F2F;
+            --light-red: #FFEBEE;
+            --dark-green: #1B5E20;
+            --bg-gray: #F4F6F4;
+            --card-bg: #FFFFFF;
+            --text-dark: #212121;
+            --text-muted: #666666;
+            --border-color: #E0E0E0;
+            
+            /* Status Colors */
+            --status-asistio: #2E7D32;
+            --status-falto: #D32F2F;
+            --status-feriado: #0288D1;
+            --status-inactivo: #757575;
+            --status-alerta: #F57C00;
+            --status-alerta-bg: #FFF3E0;
+            
+            --sidebar-width: 250px;
+            --header-height: 64px;
+            --nav-bottom-height: 60px;
+            --radius-sm: 8px;
+            --radius-md: 12px;
+            --shadow-soft: 0 2px 10px rgba(0,0,0,0.05);
+            --transition: all 0.25s ease;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        body {
+            background-color: var(--bg-gray);
+            color: var(--text-dark);
+            display: flex;
+            flex-direction: column;
+            min-height: 100vh;
+            overflow-x: hidden;
+        }
+
+        /* App Layout Structure */
+        .app-container {
+            display: flex;
+            flex: 1;
+            width: 100%;
+        }
+
+        /* Sidebar (Desktop) */
+        .sidebar {
+            width: var(--sidebar-width);
+            background: var(--card-bg);
+            border-right: 1px solid var(--border-color);
+            display: flex;
+            flex-direction: column;
+            position: fixed;
+            top: 0;
+            bottom: 0;
+            left: 0;
+            z-index: 100;
+            transition: var(--transition);
+        }
+
+        .brand-header {
+            padding: 16px;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            border-bottom: 1px solid var(--border-color);
+        }
+
+        .brand-logo {
+            height: 42px;
+            width: auto;
+            object-fit: contain;
+        }
+
+        .brand-title {
+            font-size: 15px;
+            font-weight: 700;
+            color: var(--dark-green);
+            line-height: 1.2;
+        }
+
+        .nav-menu {
+            list-style: none;
+            padding: 16px 8px;
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+        }
+
+        .nav-item {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 12px 16px;
+            border-radius: var(--radius-sm);
+            color: var(--text-muted);
+            text-decoration: none;
+            font-size: 14px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: var(--transition);
+        }
+
+        .nav-item:hover, .nav-item.active {
+            background-color: var(--light-green);
+            color: var(--dark-green);
+            font-weight: 600;
+        }
+
+        .nav-item i {
+            width: 20px;
+            height: 20px;
+        }
+
+        /* Main Content Area */
+        .main-wrapper {
+            flex: 1;
+            margin-left: var(--sidebar-width);
+            display: flex;
+            flex-direction: column;
+            min-width: 0;
+            padding-bottom: 70px; /* Space for bottom nav on mobile */
+        }
+
+        /* Top Header */
+        .top-header {
+            height: var(--header-height);
+            background: var(--card-bg);
+            border-bottom: 1px solid var(--border-color);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 0 20px;
+            position: sticky;
+            top: 0;
+            z-index: 90;
+        }
+
+        .header-title {
+            font-size: 18px;
+            font-weight: 700;
+            color: var(--dark-green);
+        }
+
+        .connection-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            padding: 6px 12px;
+            border-radius: 20px;
+            font-size: 12px;
+            font-weight: 600;
+        }
+
+        .connection-badge.online {
+            background-color: var(--light-green);
+            color: var(--dark-green);
+        }
+
+        .connection-badge.offline {
+            background-color: var(--light-red);
+            color: var(--primary-red);
+        }
+
+        .status-dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+        }
+
+        .online .status-dot { background-color: var(--accent-green); }
+        .offline .status-dot { background-color: var(--primary-red); }
+
+        /* Bottom Navigation (Mobile First) */
+        .bottom-nav {
+            display: none;
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            height: var(--nav-bottom-height);
+            background: var(--card-bg);
+            border-top: 1px solid var(--border-color);
+            z-index: 1000;
+            justify-content: space-around;
+            align-items: center;
+            padding: 0 4px;
+        }
+
+        .bottom-nav-item {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 2px;
+            color: var(--text-muted);
+            font-size: 10px;
+            text-decoration: none;
+            padding: 6px;
+            width: 20%;
+            cursor: pointer;
+        }
+
+        .bottom-nav-item.active {
+            color: var(--primary-green);
+            font-weight: 700;
+        }
+
+        /* Content Sections */
+        .content-area {
+            padding: 20px;
+            max-width: 1400px;
+            margin: 0 auto;
+            width: 100%;
+        }
+
+        .tab-section {
+            display: none;
+        }
+
+        .tab-section.active {
+            display: block;
+        }
+
+        /* Cards & Components */
+        .card {
+            background: var(--card-bg);
+            border-radius: var(--radius-md);
+            padding: 16px;
+            box-shadow: var(--shadow-soft);
+            border: 1px solid rgba(0,0,0,0.03);
+            margin-bottom: 20px;
+        }
+
+        .card-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 16px;
+        }
+
+        .card-title {
+            font-size: 16px;
+            font-weight: 700;
+            color: var(--dark-green);
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        /* Grid System */
+        .kpi-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 16px;
+            margin-bottom: 20px;
+        }
+
+        .kpi-card {
+            background: var(--card-bg);
+            border-radius: var(--radius-md);
+            padding: 16px;
+            box-shadow: var(--shadow-soft);
+            border-left: 5px solid var(--primary-green);
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+        }
+
+        .kpi-card.red { border-left-color: var(--primary-red); }
+        .kpi-card.yellow { border-left-color: var(--status-alerta); }
+
+        .kpi-title {
+            font-size: 12px;
+            font-weight: 600;
+            color: var(--text-muted);
+            text-transform: uppercase;
+        }
+
+        .kpi-value-row {
+            display: flex;
+            align-items: baseline;
+            justify-content: space-between;
+            margin-top: 8px;
+        }
+
+        .kpi-value {
+            font-size: 28px;
+            font-weight: 800;
+            color: var(--text-dark);
+        }
+
+        .kpi-icon {
+            opacity: 0.2;
+            width: 32px;
+            height: 32px;
+        }
+
+        .kpi-subtext {
+            font-size: 11px;
+            color: var(--text-muted);
+            margin-top: 4px;
+        }
+
+        /* Charts Grid */
+        .charts-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 20px;
+            margin-bottom: 20px;
+        }
+
+        .chart-container {
+            position: relative;
+            height: 250px;
+            width: 100%;
+        }
+
+        /* Filters Section */
+        .filters-card {
+            background: var(--card-bg);
+            padding: 16px;
+            border-radius: var(--radius-md);
+            margin-bottom: 20px;
+            box-shadow: var(--shadow-soft);
+        }
+
+        .filters-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+            gap: 12px;
+            margin-top: 12px;
+        }
+
+        .filter-group {
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+        }
+
+        .filter-label {
+            font-size: 11px;
+            font-weight: 600;
+            color: var(--text-muted);
+        }
+
+        .filter-input, .filter-select {
+            padding: 8px 12px;
+            border-radius: var(--radius-sm);
+            border: 1px solid var(--border-color);
+            font-size: 13px;
+            outline: none;
+            background: #FAFAFA;
+        }
+
+        .filter-input:focus, .filter-select:focus {
+            border-color: var(--primary-green);
+            background: #FFF;
+        }
+
+        .btn {
+            padding: 8px 16px;
+            border-radius: var(--radius-sm);
+            border: none;
+            font-size: 13px;
+            font-weight: 600;
+            cursor: pointer;
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            transition: var(--transition);
+        }
+
+        .btn-primary { background: var(--primary-green); color: #FFF; }
+        .btn-primary:hover { background: var(--dark-green); }
+        .btn-outline { background: transparent; border: 1px solid var(--border-color); color: var(--text-dark); }
+        .btn-outline:hover { background: #E0E0E0; }
+
+        /* Tables & Matrix */
+        .table-responsive {
+            width: 100%;
+            overflow-x: auto;
+            -webkit-overflow-scrolling: touch;
+            border-radius: var(--radius-sm);
+            border: 1px solid var(--border-color);
+        }
+
+        .data-table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 12px;
+            text-align: left;
+            white-space: nowrap;
+        }
+
+        .data-table th {
+            background-color: var(--light-green);
+            color: var(--dark-green);
+            padding: 10px 12px;
+            font-weight: 700;
+            position: sticky;
+            top: 0;
+            z-index: 10;
+        }
+
+        .data-table td {
+            padding: 8px 12px;
+            border-bottom: 1px solid var(--border-color);
+        }
+
+        .data-table tbody tr:nth-child(even) {
+            background-color: #FAFAFA;
+        }
+
+        .data-table tbody tr:hover {
+            background-color: #F0F7F0;
+        }
+
+        /* Matrix Calendar Styles */
+        .matrix-cell {
+            text-align: center;
+            padding: 6px;
+            font-size: 11px;
+            font-weight: 600;
+            border-radius: 4px;
+        }
+
+        .tag-asistio { background: var(--light-green); color: var(--status-asistio); }
+        .tag-falto { background: var(--light-red); color: var(--status-falto); }
+        .tag-feriado { background: #E1F5FE; color: var(--status-feriado); }
+        .tag-inactivo { background: #EEEEEE; color: var(--status-inactivo); }
+
+        /* Weekly Status Badges */
+        .badge-normal { background: var(--light-green); color: var(--dark-green); padding: 4px 8px; border-radius: 12px; font-weight: 700; font-size: 10px; }
+        .badge-alerta { background: var(--status-alerta-bg); color: var(--status-alerta); padding: 4px 8px; border-radius: 12px; font-weight: 700; font-size: 10px; }
+        .badge-critico { background: var(--light-red); color: var(--primary-red); padding: 4px 8px; border-radius: 12px; font-weight: 700; font-size: 10px; }
+
+        /* Sticky Columns in Matrix */
+        .sticky-col-1 { position: sticky; left: 0; background: #FFF; z-index: 5; }
+        .sticky-col-2 { position: sticky; left: 90px; background: #FFF; z-index: 5; border-right: 2px solid var(--border-color); }
+
+        /* Responsive Breakpoints */
+        @media (max-width: 768px) {
+            .sidebar { display: none; }
+            .main-wrapper { margin-left: 0; }
+            .bottom-nav { display: flex; }
+            .kpi-grid { grid-template-columns: repeat(2, 1fr); }
+            .charts-grid { grid-template-columns: 1fr; }
+            .content-area { padding: 12px; }
+            .sticky-col-2 { position: static; border-right: none; }
+        }
+    </style>
+</head>
+<body>
+
+    <!-- ==========================================================================
+       3. ESTRUCTURA Y NAVEGACIÓN
+       ========================================================================== -->
+    <div class="app-container">
+        <!-- Sidebar (Desktop Navigation) -->
+        <aside class="sidebar">
+            <div class="brand-header">
+                <img src="logo.png" alt="Agrícola Huarmey" class="brand-logo" onerror="this.src='https://via.placeholder.com/150x50?text=Huarmey'">
+                <div>
+                    <div class="brand-title">AGRÍCOLA HUARMEY</div>
+                    <div style="font-size: 10px; color: var(--text-muted);">Asistencia Cosecha</div>
+                </div>
+            </div>
+            <ul class="nav-menu">
+                <li class="nav-item active" onclick="switchTab('dashboard')">
+                    <i data-lucide="layout-dashboard"></i> Dashboard
+                </li>
+                <li class="nav-item" onclick="switchTab('matriz')">
+                    <i data-lucide="calendar"></i> Matriz Asistencia
+                </li>
+                <li class="nav-item" onclick="switchTab('resumen')">
+                    <i data-lucide="alert-triangle"></i> Control Semanal
+                </li>
+                <li class="nav-item" onclick="switchTab('detalle')">
+                    <i data-lucide="table"></i> Detalle Registros
+                </li>
+                <li class="nav-item" onclick="switchTab('sincro')">
+                    <i data-lucide="refresh-cw"></i> Sincronización
+                </li>
+            </ul>
+        </aside>
+
+        <!-- Main Wrapper -->
+        <main class="main-wrapper">
+            <!-- Header Bar -->
+            <header class="top-header">
+                <div class="header-title" id="page-title">Dashboard Ejecutivo</div>
+                <div class="connection-badge online" id="net-status">
+                    <span class="status-dot"></span> <span id="net-text">Conectado</span>
+                </div>
+            </header>
+
+            <!-- Main Content Area -->
+            <div class="content-area">
+
+                <!-- FILTROS GLOBALES -->
+                <div class="filters-card">
+                    <div style="display: flex; justify-content: space-between; align-items: center;">
+                        <span style="font-size: 13px; font-weight: 700; color: var(--dark-green);"><i data-lucide="filter" style="width:14px;"></i> Filtros de Campo</span>
+                        <button class="btn btn-outline" style="padding: 4px 8px; font-size: 11px;" onclick="resetFilters()">Limpiar Filtros</button>
+                    </div>
+                    <div class="filters-grid">
+                        <div class="filter-group">
+                            <label class="filter-label">DNI</label>
+                            <input type="text" id="f-dni" class="filter-input" placeholder="Buscar DNI..." oninput="applyFilters()">
+                        </div>
+                        <div class="filter-group">
+                            <label class="filter-label">Nombres / Apellidos</label>
+                            <input type="text" id="f-nombre" class="filter-input" placeholder="Buscar nombre..." oninput="applyFilters()">
+                        </div>
+                        <div class="filter-group">
+                            <label class="filter-label">Semana</label>
+                            <select id="f-semana" class="filter-select" onchange="applyFilters()">
+                                <option value="">Todas</option>
+                            </select>
+                        </div>
+                        <div class="filter-group">
+                            <label class="filter-label">Mes</label>
+                            <select id="f-mes" class="filter-select" onchange="applyFilters()">
+                                <option value="">Todos</option>
+                            </select>
+                        </div>
+                        <div class="filter-group">
+                            <label class="filter-label">Alerta</label>
+                            <select id="f-alerta" class="filter-select" onchange="applyFilters()">
+                                <option value="">Todos</option>
+                                <option value="ASISTIO">ASISTIO</option>
+                                <option value="FALTO">FALTO</option>
+                                <option value="INACTIVO">INACTIVO</option>
+                            </select>
+                        </div>
+                        <div class="filter-group">
+                            <label class="filter-label">Modalidad</label>
+                            <select id="f-modalidad" class="filter-select" onchange="applyFilters()">
+                                <option value="">Todas</option>
+                            </select>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- SECTION 1: DASHBOARD -->
+                <section id="sec-dashboard" class="tab-section active">
+                    <!-- KPI Cards -->
+                    <div class="kpi-grid">
+                        <div class="kpi-card">
+                            <div class="kpi-title">Personal Asistió</div>
+                            <div class="kpi-value-row">
+                                <div class="kpi-value" id="kpi-asistio">0</div>
+                                <i data-lucide="user-check" class="kpi-icon" style="color:var(--primary-green)"></i>
+                            </div>
+                            <div class="kpi-subtext" id="kpi-asistio-pct">0% del total</div>
+                        </div>
+
+                        <div class="kpi-card red">
+                            <div class="kpi-title">Total Faltas</div>
+                            <div class="kpi-value-row">
+                                <div class="kpi-value" id="kpi-falto">0</div>
+                                <i data-lucide="user-x" class="kpi-icon" style="color:var(--primary-red)"></i>
+                            </div>
+                            <div class="kpi-subtext">Asistencia FALTO</div>
+                        </div>
+
+                        <div class="kpi-card yellow">
+                            <div class="kpi-title">Falta Marcación</div>
+                            <div class="kpi-value-row">
+                                <div class="kpi-value" id="kpi-marcacion">0</div>
+                                <i data-lucide="clock" class="kpi-icon" style="color:var(--status-alerta)"></i>
+                            </div>
+                            <div class="kpi-subtext">Sin marca de entrada</div>
+                        </div>
+
+                        <div class="kpi-card yellow">
+                            <div class="kpi-title">Falta Tareo</div>
+                            <div class="kpi-value-row">
+                                <div class="kpi-value" id="kpi-tareo">0</div>
+                                <i data-lucide="clipboard-list" class="kpi-icon" style="color:var(--status-alerta)"></i>
+                            </div>
+                            <div class="kpi-subtext">Sin registro de labor</div>
+                        </div>
+
+                        <div class="kpi-card red">
+                            <div class="kpi-title">Falta Tareo + Marcación</div>
+                            <div class="kpi-value-row">
+                                <div class="kpi-value" id="kpi-doble">0</div>
+                                <i data-lucide="alert-octagon" class="kpi-icon" style="color:var(--primary-red)"></i>
+                            </div>
+                            <div class="kpi-subtext">Inconsistencia total</div>
+                        </div>
+                    </div>
+
+                    <!-- Charts Grid -->
+                    <div class="charts-grid">
+                        <div class="card">
+                            <div class="card-title"><i data-lucide="pie-chart"></i> Distribución por Sexo</div>
+                            <div class="chart-container">
+                                <canvas id="chart-sexo"></canvas>
+                            </div>
+                        </div>
+
+                        <div class="card">
+                            <div class="card-title"><i data-lucide="bar-chart-2"></i> Histórico Personal</div>
+                            <div class="chart-container">
+                                <canvas id="chart-historico"></canvas>
+                            </div>
+                        </div>
+
+                        <div class="card">
+                            <div class="card-title"><i data-lucide="bus"></i> Modalidad Transporte</div>
+                            <div class="chart-container">
+                                <canvas id="chart-modalidad"></canvas>
+                            </div>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- SECTION 2: MATRIZ DE ASISTENCIA -->
+                <section id="sec-matriz" class="tab-section">
+                    <div class="card">
+                        <div class="card-header">
+                            <div class="card-title"><i data-lucide="calendar"></i> Matriz Semanal de Asistencia</div>
+                            <span style="font-size:11px; color:var(--text-muted)">🟢 Asistió | 🔴 Faltó | 🔵 Feriado | ⚪ Inactivo</span>
+                        </div>
+                        <div class="table-responsive">
+                            <table class="data-table" id="matrix-table">
+                                <thead id="matrix-head"></thead>
+                                <tbody id="matrix-body"></tbody>
+                            </table>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- SECTION 3: CONTROL DE FALTAS SEMANALES -->
+                <section id="sec-resumen" class="tab-section">
+                    <div class="card">
+                        <div class="card-header">
+                            <div class="card-title"><i data-lucide="shield-alert"></i> Alertas y Exclusión Semanal de Faltas</div>
+                            <button class="btn btn-outline" onclick="exportWeeklyCSV()"><i data-lucide="download"></i> Exportar Resumen</button>
+                        </div>
+                        <div class="table-responsive">
+                            <table class="data-table">
+                                <thead>
+                                    <tr>
+                                        <th>DNI</th>
+                                        <th>TRABAJADOR</th>
+                                        <th>SEMANA</th>
+                                        <th>ASISTENCIAS</th>
+                                        <th>FALTAS</th>
+                                        <th>ESTADO</th>
+                                        <th>ACCIÓN / EXCLUSIÓN LOGICA</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="weekly-body"></tbody>
+                            </table>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- SECTION 4: TABLA DETALLE -->
+                <section id="sec-detalle" class="tab-section">
+                    <div class="card">
+                        <div class="card-header">
+                            <div class="card-title"><i data-lucide="list"></i> Registros Detallados de Campo</div>
+                            <button class="btn btn-primary" onclick="exportFullCSV()"><i data-lucide="download"></i> Exportar CSV</button>
+                        </div>
+                        <div style="margin-bottom: 10px; font-size: 12px; color: var(--text-muted);" id="detail-count-label">
+                            Mostrando 0 registros
+                        </div>
+                        <div class="table-responsive">
+                            <table class="data-table">
+                                <thead>
+                                    <tr>
+                                        <th>DNI</th>
+                                        <th>APELLIDOS Y NOMBRES</th>
+                                        <th>SEM</th>
+                                        <th>MES</th>
+                                        <th>DÍA</th>
+                                        <th>FECHA</th>
+                                        <th>ALERTA</th>
+                                        <th>ESTADO ASISTENCIA</th>
+                                        <th>HISTÓRICO</th>
+                                        <th>MODALIDAD</th>
+                                        <th>PLACA</th>
+                                        <th>RUTA</th>
+                                        <th>SEXO</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="detail-body"></tbody>
+                            </table>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- SECTION 5: SINCRONIZACIÓN -->
+                <section id="sec-sincro" class="tab-section">
+                    <div class="card">
+                        <div class="card-title" style="margin-bottom:12px;"><i data-lucide="refresh-cw"></i> Estado de Sincronización Offline</div>
+                        <p style="font-size: 13px; color: var(--text-muted); margin-bottom: 16px;">
+                            Los cambios realizados offline se guardan localmente en IndexedDB y se sincronizan automáticamente al recuperar la conexión.
+                        </p>
+                        <div style="display: flex; gap: 10px; margin-bottom: 20px;">
+                            <button class="btn btn-primary" onclick="syncPendingRecords()"><i data-lucide="upload-cloud"></i> Forzar Sincronización</button>
+                            <button class="btn btn-outline" onclick="fetchCloudData()"><i data-lucide="download-cloud"></i> Recargar de Google Sheets</button>
+                        </div>
+                        <div class="table-responsive">
+                            <table class="data-table">
+                                <thead>
+                                    <tr>
+                                        <th>IDENTIFICADOR</th>
+                                        <th>TRABAJADOR</th>
+                                        <th>FECHA</th>
+                                        <th>ESTADO SINCRONIZACIÓN</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="sync-body"></tbody>
+                            </table>
+                        </div>
+                    </div>
+                </section>
+
+            </div>
+        </main>
+    </div>
+
+    <!-- Bottom Navigation Bar for Mobile Devices -->
+    <nav class="bottom-nav">
+        <div class="bottom-nav-item active" onclick="switchTab('dashboard')">
+            <i data-lucide="layout-dashboard"></i>
+            <span>Dashboard</span>
+        </div>
+        <div class="bottom-nav-item" onclick="switchTab('matriz')">
+            <i data-lucide="calendar"></i>
+            <span>Matriz</span>
+        </div>
+        <div class="bottom-nav-item" onclick="switchTab('resumen')">
+            <i data-lucide="alert-triangle"></i>
+            <span>Alertas</span>
+        </div>
+        <div class="bottom-nav-item" onclick="switchTab('detalle')">
+            <i data-lucide="table"></i>
+            <span>Detalle</span>
+        </div>
+        <div class="bottom-nav-item" onclick="switchTab('sincro')">
+            <i data-lucide="refresh-cw"></i>
+            <span>Sincro</span>
+        </div>
+    </nav>
+
+    <!-- ==========================================================================
+       4. JAVASCRIPT LOGIC (INDEXEDDB, CHARTS, FILTERS, SYNC)
+       ========================================================================== -->
+    <script>
+        // CONFIGURACIÓN PRINCIPAL
+        const CONFIG = {
+            apiUrl: 'https://script.google.com/macros/s/AKfycbz_REPLACE_WITH_YOUR_DEPLOYED_GAS_URL/exec', // REEMPLAZAR CON TU URL DE WEB APP
+            dbName: 'HuarmeyAsistenciaDB',
+            dbVersion: 1,
+            syncInterval: 30000 // 30 segundos
+        };
+
+        // GLOBAL STATES
+        let rawData = [];
+        let filteredData = [];
+        let excludedWorkers = new Set(); // Exclusión lógica semanal
+        let db = null;
+        let chartSexoInstance = null;
+        let chartHistoricoInstance = null;
+        let chartModalidadInstance = null;
+
+        // INICIALIZACIÓN DE LA APLICACIÓN
+        document.addEventListener('DOMContentLoaded', async () => {
+            lucide.createIcons();
+            await initIndexedDB();
+            initNetworkStatus();
+            await loadLocalData();
+            if (navigator.onLine) {
+                fetchCloudData();
+            }
+            setInterval(autoSync, CONFIG.syncInterval);
+            registerServiceWorker();
+        });
+
+        // 1. REGISTRO DE SERVICE WORKER
+        function registerServiceWorker() {
+            if ('serviceWorker' in navigator) {
+                navigator.serviceWorker.register('./service-worker.js')
+                    .then(reg => console.log('SW Registrado:', reg.scope))
+                    .catch(err => console.log('SW Error:', err));
+            }
+        }
+
+        // 2. BASE DE DATOS LOCAL (IndexedDB)
+        function initIndexedDB() {
+            return new Promise((resolve, reject) => {
+                const request = indexedDB.open(CONFIG.dbName, CONFIG.dbVersion);
+                request.onupgradeneeded = (e) => {
+                    db = e.target.result;
+                    if (!db.objectStoreNames.contains('asistencia')) {
+                        const store = db.createObjectStore('asistencia', { keyPath: '_ID' });
+                        store.createIndex('sync_status', 'sync_status', { unique: false });
+                    }
+                };
+                request.onsuccess = (e) => {
+                    db = e.target.result;
+                    resolve();
+                };
+                request.onerror = (e) => reject(e);
+            });
+        }
+
+        async function saveLocalData(records) {
+            if (!db) return;
+            const tx = db.transaction('asistencia', 'readwrite');
+            const store = tx.objectStore('asistencia');
+            records.forEach(r => {
+                if (!r._ID) r._ID = String(r.DNI) + '_' + String(r['FECHA INDICE']).substring(0, 10);
+                if (!r.sync_status) r.sync_status = 'SINCRONIZADO';
+                store.put(r);
+            });
+        }
+
+        async function loadLocalData() {
+            if (!db) return;
+            return new Promise((resolve) => {
+                const tx = db.transaction('asistencia', 'readonly');
+                const store = tx.objectStore('asistencia');
+                const request = store.getAll();
+                request.onsuccess = () => {
+                    rawData = request.result || [];
+                    populateFilterDropdowns();
+                    applyFilters();
+                    resolve();
+                };
+            });
+        }
+
+        // 3. COMUNICACIÓN Y SINCRONIZACIÓN API
+        async function fetchCloudData() {
+            if (!navigator.onLine) return;
+            try {
+                const res = await fetch(`${CONFIG.apiUrl}?action=getData`);
+                const json = await res.json();
+                if (json.status === 'SUCCESS' && Array.isArray(json.data)) {
+                    rawData = json.data.map(item => ({
+                        ...item,
+                        sync_status: 'SINCRONIZADO'
+                    }));
+                    await saveLocalData(rawData);
+                    populateFilterDropdowns();
+                    applyFilters();
+                }
+            } catch (err) {
+                console.error('Error descargando datos:', err);
+            }
+        }
+
+        async function syncPendingRecords() {
+            if (!navigator.onLine || !db) return;
+            const tx = db.transaction('asistencia', 'readonly');
+            const store = tx.objectStore('asistencia');
+            const index = store.index('sync_status');
+            const request = index.getAll('PENDIENTE');
+
+            request.onsuccess = async () => {
+                const pending = request.result;
+                if (pending.length === 0) return;
+
+                try {
+                    const res = await fetch(CONFIG.apiUrl, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ action: 'sync', records: pending })
+                    });
+                    const json = await res.json();
+                    if (json.status === 'SUCCESS') {
+                        pending.forEach(r => r.sync_status = 'SINCRONIZADO');
+                        await saveLocalData(pending);
+                        renderSyncTable();
+                    }
+                } catch (err) {
+                    console.error('Error al sincronizar:', err);
+                }
+            };
+        }
+
+        function autoSync() {
+            if (navigator.onLine) {
+                syncPendingRecords();
+            }
+        }
+
+        // 4. DETECCIÓN DE RED
+        function initNetworkStatus() {
+            const badge = document.getElementById('net-status');
+            const text = document.getElementById('net-text');
+
+            function update() {
+                if (navigator.onLine) {
+                    badge.className = 'connection-badge online';
+                    text.innerText = 'Conectado';
+                    syncPendingRecords();
+                } else {
+                    badge.className = 'connection-badge offline';
+                    text.innerText = 'Sin Conexión';
+                }
+            }
+            window.addEventListener('online', update);
+            window.addEventListener('offline', update);
+            update();
+        }
+
+        // 5. FILTROS INTERACTIVOS
+        function populateFilterDropdowns() {
+            const semanas = [...new Set(rawData.map(r => r.SEMANA))].sort((a,b) => a-b);
+            const meses = [...new Set(rawData.map(r => r.MES))].filter(Boolean);
+            const modalidades = [...new Set(rawData.map(r => r.MODALIDAD))].filter(Boolean);
+
+            fillSelect('f-semana', semanas);
+            fillSelect('f-mes', meses);
+            fillSelect('f-modalidad', modalidades);
+        }
+
+        function fillSelect(id, values) {
+            const sel = document.getElementById(id);
+            const curr = sel.value;
+            sel.innerHTML = '<option value="">Todos</option>';
+            values.forEach(v => {
+                const opt = document.createElement('option');
+                opt.value = v;
+                opt.textContent = v;
+                sel.appendChild(opt);
+            });
+            sel.value = curr;
+        }
+
+        function applyFilters() {
+            const fDni = document.getElementById('f-dni').value.trim();
+            const fNombre = document.getElementById('f-nombre').value.toLowerCase().trim();
+            const fSemana = document.getElementById('f-semana').value;
+            const fMes = document.getElementById('f-mes').value;
+            const fAlerta = document.getElementById('f-alerta').value;
+            const fModalidad = document.getElementById('f-modalidad').value;
+
+            filteredData = rawData.filter(r => {
+                // Exclusión lógica de faltas críticas si aplica
+                if (excludedWorkers.has(r.DNI)) return false;
+
+                if (fDni && !String(r.DNI).includes(fDni)) return false;
+                if (fNombre && !String(r['APELLIDOS Y NOMBRES']).toLowerCase().includes(fNombre)) return false;
+                if (fSemana && String(r.SEMANA) !== fSemana) return false;
+                if (fMes && String(r.MES) !== fMes) return false;
+                if (fAlerta && String(r.ALERTA) !== fAlerta) return false;
+                if (fModalidad && String(r.MODALIDAD) !== fModalidad) return false;
+                return true;
+            });
+
+            renderDashboard();
+            renderMatrix();
+            renderWeeklyControl();
+            renderDetailTable();
+            renderSyncTable();
+        }
+
+        function resetFilters() {
+            document.getElementById('f-dni').value = '';
+            document.getElementById('f-nombre').value = '';
+            document.getElementById('f-semana').value = '';
+            document.getElementById('f-mes').value = '';
+            document.getElementById('f-alerta').value = '';
+            document.getElementById('f-modalidad').value = '';
+            applyFilters();
+        }
+
+        // 6. RENDERIZADO DEL DASHBOARD & CHARTS
+        function renderDashboard() {
+            const total = filteredData.length;
+            const asistio = filteredData.filter(r => r.ALERTA === 'ASISTIO').length;
+            const falto = filteredData.filter(r => r.ALERTA === 'FALTO').length;
+            const marcacion = filteredData.filter(r => r['ESTADO ASISTENCIA'] === 'FALTA MARCACIÓN' || r['ESTADO ASISTENCIA'] === 'FALTA MARCACION').length;
+            const tareo = filteredData.filter(r => r['ESTADO ASISTENCIA'] === 'FALTA TAREO').length;
+            const doble = filteredData.filter(r => String(r['ESTADO ASISTENCIA']).includes('TAREO') && String(r['ESTADO ASISTENCIA']).includes('MARCAC')).length;
+
+            document.getElementById('kpi-asistio').innerText = asistio;
+            document.getElementById('kpi-asistio-pct').innerText = total > 0 ? `${((asistio/total)*100).toFixed(1)}% del total` : '0%';
+            document.getElementById('kpi-falto').innerText = falto;
+            document.getElementById('kpi-marcacion').innerText = marcacion;
+            document.getElementById('kpi-tareo').innerText = tareo;
+            document.getElementById('kpi-doble').innerText = doble;
+
+            renderCharts();
+        }
+
+        function renderCharts() {
+            // Chart Sexo
+            const ctxSexo = document.getElementById('chart-sexo').getContext('2d');
+            const countM = filteredData.filter(r => r.SEXO === 'M').length;
+            const countF = filteredData.filter(r => r.SEXO === 'F').length;
+
+            if (chartSexoInstance) chartSexoInstance.destroy();
+            chartSexoInstance = new Chart(ctxSexo, {
+                type: 'doughnut',
+                data: {
+                    labels: ['Masculino (M)', 'Femenino (F)'],
+                    datasets: [{ data: [countM, countF], backgroundColor: ['#2E7D32', '#E91E63'] }]
+                },
+                options: { responsive: true, maintainAspectRatio: false }
+            });
+
+            // Chart Historico
+            const ctxHist = document.getElementById('chart-historico').getContext('2d');
+            const histCounts = {};
+            filteredData.forEach(r => {
+                const h = r.HISTORICO || 'N/A';
+                histCounts[h] = (histCounts[h] || 0) + 1;
+            });
+
+            if (chartHistoricoInstance) chartHistoricoInstance.destroy();
+            chartHistoricoInstance = new Chart(ctxHist, {
+                type: 'bar',
+                data: {
+                    labels: Object.keys(histCounts),
+                    datasets: [{ label: 'Personal', data: Object.values(histCounts), backgroundColor: '#4CAF50' }]
+                },
+                options: { responsive: true, maintainAspectRatio: false, indexAxis: 'y' }
+            });
+
+            // Chart Modalidad
+            const ctxMod = document.getElementById('chart-modalidad').getContext('2d');
+            const modCounts = {};
+            filteredData.forEach(r => {
+                const m = r.MODALIDAD || 'N/A';
+                modCounts[m] = (modCounts[m] || 0) + 1;
+            });
+
+            if (chartModalidadInstance) chartModalidadInstance.destroy();
+            chartModalidadInstance = new Chart(ctxMod, {
+                type: 'pie',
+                data: {
+                    labels: Object.keys(modCounts),
+                    datasets: [{ data: Object.values(modCounts), backgroundColor: ['#0288D1', '#FF9800', '#9C27B0'] }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    onClick: (e, elements) => {
+                        if (elements.length > 0) {
+                            const idx = elements[0].index;
+                            const modLabel = Object.keys(modCounts)[idx];
+                            document.getElementById('f-modalidad').value = modLabel;
+                            applyFilters();
+                        }
+                    }
+                }
+            });
+        }
+
+        // 7. MATRIZ DE ASISTENCIA (CALENDARIO POR TRABAJADOR)
+        function renderMatrix() {
+            const head = document.getElementById('matrix-head');
+            const body = document.getElementById('matrix-body');
+            head.innerHTML = '';
+            body.innerHTML = '';
+
+            if (filteredData.length === 0) return;
+
+            // Extraer fechas únicas ordenadas
+            const dates = [...new Set(filteredData.map(r => String(r['FECHA INDICE']).substring(0, 10)))].sort();
+            
+            // Render Header
+            let trHead = '<tr><th class="sticky-col-1">DNI</th><th class="sticky-col-2">NOMBRES Y APELLIDOS</th>';
+            dates.forEach(d => {
+                const parts = d.split('-');
+                trHead += `<th>${parts[2]}/${parts[1]}</th>`;
+            });
+            trHead += '</tr>';
+            head.innerHTML = trHead;
+
+            // Agrupar por trabajador
+            const workers = {};
+            filteredData.forEach(r => {
+                if (!workers[r.DNI]) {
+                    workers[r.DNI] = { nombre: r['APELLIDOS Y NOMBRES'], dates: {} };
+                }
+                workers[r.DNI].dates[String(r['FECHA INDICE']).substring(0, 10)] = r.ALERTA;
+            });
+
+            // Render Body
+            Object.keys(workers).forEach(dni => {
+                const w = workers[dni];
+                let tr = `<tr><td class="sticky-col-1">${dni}</td><td class="sticky-col-2">${w.nombre}</td>`;
+                dates.forEach(d => {
+                    const st = w.dates[d] || 'INACTIVO';
+                    let tagClass = 'tag-inactivo';
+                    let symbol = '⚪ INACTIVO';
+                    if (st === 'ASISTIO') { tagClass = 'tag-asistio'; symbol = '🟢 ASISTIO'; }
+                    else if (st === 'FALTO') { tagClass = 'tag-falto'; symbol = '🔴 FALTO'; }
+                    else if (st === 'FERIADO') { tagClass = 'tag-feriado'; symbol = '🔵 FERIADO'; }
+
+                    tr += `<td><div class="matrix-cell ${tagClass}" title="${w.nombre} - ${d}: ${st}">${symbol}</div></td>`;
+                });
+                tr += '</tr>';
+                body.innerHTML += tr;
+            });
+        }
+
+        // 8. CONTROL DE FALTAS SEMANALES (ALERTAS Y EXCLUSIÓN LÓGICA)
+        function renderWeeklyControl() {
+            const body = document.getElementById('weekly-body');
+            body.innerHTML = '';
+
+            const stats = {};
+            filteredData.forEach(r => {
+                const key = `${r.DNI}_${r.SEMANA}`;
+                if (!stats[key]) {
+                    stats[key] = { dni: r.DNI, nombre: r['APELLIDOS Y NOMBRES'], semana: r.SEMANA, asistencias: 0, faltas: 0 };
+                }
+                if (r.ALERTA === 'ASISTIO') stats[key].asistencias++;
+                if (r.ALERTA === 'FALTO') stats[key].faltas++;
+            });
+
+            Object.values(stats).forEach(s => {
+                let badge = '<span class="badge-normal">🟢 NORMAL</span>';
+                let rowBg = '';
+                if (s.faltas > 3 && s.faltas < 6) {
+                    badge = '<span class="badge-alerta">🟡 ALERTA</span>';
+                    rowBg = 'style="background-color: var(--status-alerta-bg);"';
+                } else if (s.faltas >= 6) {
+                    badge = '<span class="badge-critico">🔴 CRÍTICO</span>';
+                    rowBg = 'style="background-color: var(--light-red);"';
+                }
+
+                const isExcluded = excludedWorkers.has(s.dni);
+                const btnText = isExcluded ? 'Incluir en Cálculo' : 'Excluir de Semana';
+                const btnClass = isExcluded ? 'btn-primary' : 'btn-outline';
+
+                body.innerHTML += `
+                    <tr ${rowBg}>
+                        <td>${s.dni}</td>
+                        <td>${s.nombre}</td>
+                        <td>Semana ${s.semana}</td>
+                        <td>${s.asistencias}</td>
+                        <td>${s.faltas}</td>
+                        <td>${badge}</td>
+                        <td>
+                            <button class="btn ${btnClass}" style="padding:4px 8px; font-size:10px;" onclick="toggleExclusion(${s.dni})">
+                                ${btnText}
+                            </button>
+                        </td>
+                    </tr>
+                `;
+            });
+        }
+
+        function toggleExclusion(dni) {
+            if (excludedWorkers.has(dni)) {
+                excludedWorkers.delete(dni);
+            } else {
+                excludedWorkers.add(dni);
+            }
+            applyFilters();
+        }
+
+        // 9. TABLA DE DETALLE DE REGISTROS
+        function renderDetailTable() {
+            const body = document.getElementById('detail-body');
+            body.innerHTML = '';
+            document.getElementById('detail-count-label').innerText = `Mostrando ${filteredData.length} registros de un total de ${rawData.length}`;
+
+            // Renderizado limitado a los primeros 200 para alto rendimiento
+            const limitData = filteredData.slice(0, 200);
+
+            limitData.forEach(r => {
+                const fecha = String(r['FECHA INDICE']).substring(0, 10);
+                body.innerHTML += `
+                    <tr>
+                        <td>${r.DNI}</td>
+                        <td>${r['APELLIDOS Y NOMBRES']}</td>
+                        <td>${r.SEMANA}</td>
+                        <td>${r.MES}</td>
+                        <td>${r.DIA}</td>
+                        <td>${fecha}</td>
+                        <td><b>${r.ALERTA}</b></td>
+                        <td>${r['ESTADO ASISTENCIA']}</td>
+                        <td>${r.HISTORICO}</td>
+                        <td>${r.MODALIDAD}</td>
+                        <td>${r.PLACA}</td>
+                        <td>${r.RUTA}</td>
+                        <td>${r.SEXO}</td>
+                    </tr>
+                `;
+            });
+        }
+
+        // 10. TABLA DE SINCRONIZACIÓN
+        function renderSyncTable() {
+            const body = document.getElementById('sync-body');
+            body.innerHTML = '';
+
+            const pendings = rawData.filter(r => r.sync_status === 'PENDIENTE');
+            if (pendings.length === 0) {
+                body.innerHTML = '<tr><td colspan="4" style="text-align:center; color:var(--text-muted);">Todos los registros están sincronizados con Google Sheets.</td></tr>';
+                return;
+            }
+
+            pendings.forEach(r => {
+                body.innerHTML += `
+                    <tr>
+                        <td>${r._ID}</td>
+                        <td>${r['APELLIDOS Y NOMBRES']}</td>
+                        <td>${String(r['FECHA INDICE']).substring(0, 10)}</td>
+                        <td><span style="color:var(--status-alerta); font-weight:bold;">🟠 PENDIENTE</span></td>
+                    </tr>
+                `;
+            });
+        }
+
+        // 11. EXPORTACIÓN A CSV
+        function exportFullCSV() {
+            let csv = 'DNI,APELLIDOS Y NOMBRES,SEMANA,MES,DIA,FECHA INDICE,ALERTA,ESTADO ASISTENCIA,HISTORICO,MODALIDAD,PLACA,RUTA,SEXO\n';
+            filteredData.forEach(r => {
+                csv += `"${r.DNI}","${r['APELLIDOS Y NOMBRES']}",${r.SEMANA},${r.MES},${r.DIA},"${String(r['FECHA INDICE']).substring(0, 10)}","${r.ALERTA}","${r['ESTADO ASISTENCIA']}","${r.HISTORICO}","${r.MODALIDAD}","${r.PLACA}","${r.RUTA}","${r.SEXO}"\n`;
+            });
+            downloadFile(csv, 'Asistencia_Huarmey_Filtrado.csv', 'text/csv');
+        }
+
+        function exportWeeklyCSV() {
+            let csv = 'DNI,TRABAJADOR,SEMANA,ASISTENCIAS,FALTAS\n';
+            const stats = {};
+            filteredData.forEach(r => {
+                const key = `${r.DNI}_${r.SEMANA}`;
+                if (!stats[key]) stats[key] = { dni: r.DNI, nombre: r['APELLIDOS Y NOMBRES'], semana: r.SEMANA, asistencias: 0, faltas: 0 };
+                if (r.ALERTA === 'ASISTIO') stats[key].asistencias++;
+                if (r.ALERTA === 'FALTO') stats[key].faltas++;
+            });
+            Object.values(stats).forEach(s => {
+                csv += `"${s.dni}","${s.nombre}",${s.semana},${s.asistencias},${s.faltas}\n`;
+            });
+            downloadFile(csv, 'Resumen_Semanal_Faltas.csv', 'text/csv');
+        }
+
+        function downloadFile(content, fileName, mimeType) {
+            const a = document.createElement('a');
+            const blob = new Blob([content], { type: mimeType });
+            a.href = URL.createObjectURL(blob);
+            a.download = fileName;
+            a.click();
+        }
+
+        // 12. NAVEGACIÓN ENTRE TABS
+        function switchTab(tabId) {
+            document.querySelectorAll('.tab-section').forEach(s => s.classList.remove('active'));
+            document.querySelectorAll('.nav-item').forEach(i => i.classList.remove('active'));
+            document.querySelectorAll('.bottom-nav-item').forEach(i => i.classList.remove('active'));
+
+            document.getElementById(`sec-${tabId}`).classList.add('active');
+
+            const titles = {
+                dashboard: 'Dashboard Ejecutivo',
+                matriz: 'Matriz de Asistencia',
+                resumen: 'Control de Faltas Semanales',
+                detalle: 'Detalle Registros de Campo',
+                sincro: 'Estado de Sincronización'
+            };
+            document.getElementById('page-title').innerText = titles[tabId];
+            lucide.createIcons();
+        }
+    </script>
+</body>
+</html>

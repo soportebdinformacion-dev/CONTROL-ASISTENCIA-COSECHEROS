@@ -30,9 +30,9 @@
 
   <!-- Header / Navbar -->
   <header class="bg-white shadow-md sticky top-0 z-50">
-    <div class="max-w-7xl mx-auto px-4 py-3 flex justify-between items-center">
+    <div class="max-w-7xl mx-auto px-4 py-3 flex justify-between items-center flex-wrap gap-3">
       <div class="flex items-center space-x-3">
-        <!-- Logo SVG -->
+        <!-- Logo SVG Agrícola Huarmey -->
         <svg class="h-10 w-10" viewBox="0 0 100 100">
           <circle cx="50" cy="50" r="45" fill="none" stroke="#2e7d32" stroke-width="4"/>
           <path d="M 30 65 C 30 35, 70 35, 70 65 C 60 75, 40 75, 30 65 Z" fill="#d32f2f"/>
@@ -44,18 +44,45 @@
         </div>
       </div>
       
-      <!-- Estado de Conexión & Botón Sync -->
-      <div class="flex items-center gap-3">
-        <div id="connectionStatus" class="flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold bg-gray-100 text-gray-600 transition-all duration-300">
+      <!-- Estado de Conexión, Configuración URL & Botón Sync -->
+      <div class="flex items-center gap-2">
+        <div id="connectionStatus" class="flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold bg-gray-100 text-gray-600 border border-gray-200">
           <span class="w-2 h-2 rounded-full bg-gray-400" id="statusDot"></span>
-          <span id="statusText">Verificando...</span>
+          <span id="statusText">Iniciando...</span>
         </div>
+        
+        <button onclick="toggleConfigModal()" title="Configurar URL de Google Sheets" class="p-2 text-gray-500 hover:text-gray-700 hover:bg-gray-100 rounded-lg transition">
+          <i data-lucide="settings" class="w-4 h-4"></i>
+        </button>
+
         <button id="btnSync" onclick="sincronizarDatos(true)" class="flex items-center gap-1 bg-emerald-600 hover:bg-emerald-700 text-white text-xs px-3 py-2 rounded-lg font-medium shadow-sm transition">
           <i data-lucide="refresh-cw" class="w-4 h-4" id="syncIcon"></i> Sincronizar
         </button>
       </div>
     </div>
   </header>
+
+  <!-- Modal de Configuración de API URL -->
+  <div id="configModal" class="hidden fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+    <div class="bg-white rounded-xl shadow-xl max-w-md w-full p-5 space-y-4">
+      <div class="flex justify-between items-center border-b pb-2">
+        <h3 class="font-bold text-gray-800 flex items-center gap-2">
+          <i data-lucide="link" class="w-4 h-4 text-emerald-600"></i> Configurar Google Sheets API
+        </h3>
+        <button onclick="toggleConfigModal()" class="text-gray-400 hover:text-gray-600">
+          <i data-lucide="x" class="w-5 h-5"></i>
+        </button>
+      </div>
+      <div class="space-y-2 text-xs text-gray-600">
+        <p>Pega aquí la URL de la Aplicación Web generada al desplegar tu código en <strong>Google Apps Script</strong>:</p>
+        <input type="text" id="gasUrlInput" placeholder="https://script.google.com/macros/s/.../exec" class="w-full p-2.5 border rounded-lg text-xs font-mono border-gray-300 focus:ring-2 focus:ring-emerald-500 outline-none">
+      </div>
+      <div class="flex justify-end gap-2 pt-2">
+        <button onclick="toggleConfigModal()" class="px-3 py-1.5 text-xs text-gray-600 hover:bg-gray-100 rounded-lg">Cancelar</button>
+        <button onclick="guardarGasUrl()" class="px-3 py-1.5 text-xs bg-emerald-600 hover:bg-emerald-700 text-white font-medium rounded-lg shadow-sm">Guardar y Conectar</button>
+      </div>
+    </div>
+  </div>
 
   <main class="max-w-7xl mx-auto px-4 mt-6 space-y-6">
 
@@ -217,28 +244,50 @@
   </main>
 
   <script>
-    const GAS_URL = "https://script.google.com/macros/s/AKfycbw1FQXuRaK9Eb9ZdzJghT7vkoQbKFYckwHzQ5ZmAnUDfYQgu9qvwBJsLtQ6VdGn0qAY/exec";
+    // URL por defecto (Se guardará en localStorage)
+    let gasUrl = localStorage.getItem("AH_GAS_URL") || "";
     let dbData = [];
     let filteredData = [];
     let charts = {};
 
-    // Inicialización Instantánea
+    // Inicialización de la Aplicación
     document.addEventListener("DOMContentLoaded", async () => {
       lucide.createIcons();
+      document.getElementById("gasUrlInput").value = gasUrl;
+
       await initDB();
-      
-      // 1. Cargar cache local inmediatamente (instantáneo)
       await cargarDatosLocal();
       
-      // 2. Sincronizar en segundo plano
-      sincronizarDatos();
-      
+      if (!gasUrl) {
+        setConnectionStatus("offline", "Falta Configurar URL");
+        toggleConfigModal();
+      } else {
+        sincronizarDatos();
+      }
+
       if ('serviceWorker' in navigator) {
         navigator.serviceWorker.register('service-worker.js');
       }
     });
 
-    // IndexedDB Offline
+    function toggleConfigModal() {
+      const modal = document.getElementById("configModal");
+      modal.classList.toggle("hidden");
+    }
+
+    function guardarGasUrl() {
+      const val = document.getElementById("gasUrlInput").value.trim();
+      if(val) {
+        gasUrl = val;
+        localStorage.setItem("AH_GAS_URL", gasUrl);
+        toggleConfigModal();
+        sincronizarDatos(true);
+      } else {
+        alert("Ingresa una URL válida de Google Apps Script.");
+      }
+    }
+
+    // Configuración IndexedDB (Offline Storage)
     function initDB() {
       return new Promise((resolve, reject) => {
         const request = indexedDB.open("AgricolaHuarmeyDB", 1);
@@ -277,7 +326,7 @@
       });
     }
 
-    // Actualizador de la Alerta de Conexión a Google Sheets
+    // Alerta / Indicador de Conexión
     function setConnectionStatus(status, message) {
       const box = document.getElementById("connectionStatus");
       const dot = document.getElementById("statusDot");
@@ -286,7 +335,7 @@
       if (status === "connecting") {
         box.className = "flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold bg-amber-50 text-amber-700 border border-amber-200";
         dot.className = "w-2 h-2 rounded-full bg-amber-500 animate-pulse";
-        txt.innerText = message || "Conectando a Google Sheets...";
+        txt.innerText = message || "Conectando...";
       } else if (status === "online") {
         box.className = "flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold bg-emerald-50 text-emerald-700 border border-emerald-200";
         dot.className = "w-2 h-2 rounded-full bg-emerald-500";
@@ -294,40 +343,54 @@
       } else if (status === "offline") {
         box.className = "flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold bg-red-50 text-red-700 border border-red-200";
         dot.className = "w-2 h-2 rounded-full bg-red-500";
-        txt.innerText = message || "Sin Conexión (Modo Offline)";
+        txt.innerText = message || "Sin Conexión";
       }
     }
 
-    // Sincronización
+    // Sincronización mediante Fetch con manejo completo de CORS y Redirecciones
     async function sincronizarDatos(manual = false) {
+      if (!gasUrl) {
+        setConnectionStatus("offline", "URL no configurada");
+        if(manual) toggleConfigModal();
+        return;
+      }
+
       setConnectionStatus("connecting", "Sincronizando...");
       const icon = document.getElementById("syncIcon");
       if(icon) icon.classList.add("animate-spin");
 
-      const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 8000); // 8 segs timeout
-
       try {
-        const res = await fetch(GAS_URL, { signal: controller.signal });
-        clearTimeout(timeoutId);
-        const json = await res.json();
-        
-        if (json.status === "success") {
+        // Redirección HTTP 302 explícita para Google Apps Script
+        const response = await fetch(gasUrl, {
+          method: 'GET',
+          mode: 'cors',
+          redirect: 'follow',
+          headers: { 'Accept': 'application/json' }
+        });
+
+        if (!response.ok) {
+          throw new Error(`HTTP Error Status: ${response.status}`);
+        }
+
+        const json = await response.json();
+
+        if (json.status === "success" && Array.isArray(json.data)) {
           dbData = json.data;
           await guardarLocal(dbData);
           procesarYRenderizar(dbData);
           setConnectionStatus("online", "Conectado a Google Sheets");
         } else {
-          setConnectionStatus("offline", "Error en Sheets");
+          throw new Error(json.message || "Estructura de respuesta no válida");
         }
       } catch (err) {
-        setConnectionStatus("offline", dbData.length > 0 ? "Modo Offline Activo" : "Sin Conexión");
+        console.error("Error en sincronización con Google Sheets:", err);
+        setConnectionStatus("offline", dbData.length > 0 ? "Sin Conexión (Usando Local)" : "Sin Conexión");
       } finally {
         if(icon) icon.classList.remove("animate-spin");
       }
     }
 
-    // Renderizado
+    // Procesamiento y Renderizado General
     function procesarYRenderizar(data) {
       filteredData = [...data];
       poblarFiltros(data);
@@ -405,7 +468,7 @@
       const estAsist = document.getElementById("filterEstadoAsistencia").value;
 
       filteredData = dbData.filter(item => {
-        const matchBusqueda = (item.DNI || "").toLowerCase().includes(busqueda) || (item.APELLIDOS_NOMBRES || "").toLowerCase().includes(busqueda);
+        const matchBusqueda = (item.DNI || "").toString().toLowerCase().includes(busqueda) || (item.APELLIDOS_NOMBRES || "").toLowerCase().includes(busqueda);
         const matchSemana = !semana || item.SEMANA == semana;
         const matchMes = !mes || item.MES == mes;
         const matchFecha = !fecha || item.FECHA_INDICE == fecha;
@@ -452,10 +515,10 @@
       procesarYRenderizar(dbData);
     }
 
-    // Exportación a Excel con la data actualmente filtrada
+    // Exportar a Excel
     function exportarExcel() {
       if (!filteredData || filteredData.length === 0) {
-        alert("No hay información filtrada para exportar.");
+        alert("No hay registros disponibles para exportar.");
         return;
       }
 
@@ -473,18 +536,18 @@
         "Placa": item.PLACA,
         "Ruta": item.RUTA,
         "Sexo": item.SEXO,
-        "Faltas Acumuladas Semana": item.FALTAS_SEMANA || 0
+        "Faltas Semanales": item.FALTAS_SEMANA || 0
       }));
 
       const worksheet = XLSX.utils.json_to_sheet(dataToExport);
       const workbook = XLSX.utils.book_new();
-      XLSX.utils.book_append_sheet(workbook, worksheet, "Reporte_Filtrado");
+      XLSX.utils.book_append_sheet(workbook, worksheet, "Reporte_Asistencia");
 
-      const fechaHoy = new Date().toISOString().split('T')[0];
-      XLSX.writeFile(workbook, `Reporte_Asistencia_Huarmey_${fechaHoy}.xlsx`);
+      const hoy = new Date().toISOString().split('T')[0];
+      XLSX.writeFile(workbook, `Reporte_Huarmey_${hoy}.xlsx`);
     }
 
-    // Render Matrix FECHA_INDICE
+    // Render Tabla Matriz por FECHA_INDICE
     function renderMatriz(data) {
       const fechas = [...new Set(data.map(i => i.FECHA_INDICE))].filter(Boolean).sort();
       const empleados = [...new Set(data.map(i => JSON.stringify({ dni: i.DNI, nombre: i.APELLIDOS_NOMBRES })))].map(i => JSON.parse(i));

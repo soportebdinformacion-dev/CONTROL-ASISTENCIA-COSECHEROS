@@ -1,23 +1,21 @@
 {
-  "short_name": "HuarmeyAsistencia",
-  "name": "Agrícola Huarmey - Control Asistencia Cosecha",
+  "short_name": "HuarmeyApp",
+  "name": "Agrícola Huarmey - Control Asistencia",
   "icons": [
     {
-      "src": "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==",
+      "src": "icon-192.png",
       "type": "image/png",
       "sizes": "192x192"
     },
     {
-      "src": "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==",
+      "src": "icon-512.png",
       "type": "image/png",
       "sizes": "512x512"
     }
   ],
-  "start_url": "./index.html",
-  "background_color": "#F8F9FA",
-  "theme_color": "#2E7D32",
+  "start_url": "./",
+  "background_color": "#ffffff",
+  "theme_color": "#c62828",
   "display": "standalone",
-  "orientation": "portrait-primary",
-  "scope": "./",
-  "description": "Aplicación Web Progresiva para la gestión offline y online de asistencia de personal de cosecha en Agrícola Huarmey."
+  "orientation": "portrait"
 }

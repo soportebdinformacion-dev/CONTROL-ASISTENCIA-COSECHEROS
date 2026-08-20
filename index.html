@@ -1,1028 +1,729 @@
-<!DOCTYPE html><!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="es">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Sistema Control de Asistencia PWA</title>
-    <!-- Chart.js y Plugin DataLabels -->
-    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels@2"></script>
-    <!-- FontAwesome icons -->
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    
-    <style>
-        :root {
-            --primary-color: #1a436e;
-            --primary-light: #2c5b8f;
-            --secondary-color: #008080;
-            --bg-color: #f4f7f6;
-            --card-bg: #ffffff;
-            --text-main: #333333;
-            --text-muted: #666666;
-            --border-color: #e0e0e0;
-            
-            /* Colores de Estados */
-            --color-asistio: #2e7d32;
-            --bg-asistio: #e8f5e9;
-            --color-falto: #c62828;
-            --bg-falto: #ffebee;
-            --color-feriado: #f57c00;
-            --bg-feriado: #fff3e0;
-            --color-inactivo: #757575;
-            --bg-inactivo: #eee;
-            --color-falta-marc: #d32f2f;
-            --color-falta-tareo: #ed6c02;
-            --color-falta-ambos: #9c27b0;
-        }
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Agrícola Huarmey - Control de Asistencia</title>
+  <link rel="manifest" href="manifest.json">
+  <meta name="theme-color" content="#d32f2f">
+  
+  <!-- Tailwind CSS, Lucide Icons, Chart.js, Chart.js DataLabels Plugin & SheetJS -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://unpkg.com/lucide@latest"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels@2.2.0"></script>
+  <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
 
-        * {
-            box-sizing: border-box;
-            margin: 0;
-            padding: 0;
-            font-family: 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
-        }
-
-        body {
-            background-color: var(--bg-color);
-            color: var(--text-main);
-            padding: 15px;
-            font-size: 14px;
-        }
-
-        header {
-            background-color: var(--primary-color);
-            color: white;
-            padding: 15px 20px;
-            border-radius: 8px;
-            margin-bottom: 20px;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
-        }
-
-        header h1 {
-            font-size: 1.4rem;
-            font-weight: 600;
-            display: flex;
-            align-items: center;
-            gap: 10px;
-        }
-
-        .user-info {
-            font-size: 0.9rem;
-            display: flex;
-            align-items: center;
-            gap: 8px;
-        }
-
-        /* Sección Filtros */
-        .filters-section {
-            background-color: var(--card-bg);
-            padding: 15px;
-            border-radius: 8px;
-            margin-bottom: 20px;
-            box-shadow: 0 2px 4px rgba(0,0,0,0.05);
-            border: 1px solid var(--border-color);
-        }
-
-        .filters-title {
-            font-weight: 600;
-            margin-bottom: 12px;
-            color: var(--primary-color);
-            display: flex;
-            align-items: center;
-            gap: 8px;
-        }
-
-        .filters-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
-            gap: 12px;
-        }
-
-        .filter-group {
-            display: flex;
-            flex-direction: column;
-            gap: 4px;
-        }
-
-        .filter-group label {
-            font-size: 0.8rem;
-            font-weight: 600;
-            color: var(--text-muted);
-        }
-
-        .filter-group input, .filter-group select {
-            padding: 8px 10px;
-            border: 1px solid var(--border-color);
-            border-radius: 4px;
-            outline: none;
-            font-size: 0.85rem;
-            transition: border-color 0.2s;
-        }
-
-        .filter-group input:focus, .filter-group select:focus {
-            border-color: var(--primary-color);
-        }
-
-        .filter-actions {
-            margin-top: 12px;
-            display: flex;
-            justify-content: flex-end;
-            gap: 10px;
-        }
-
-        .btn {
-            padding: 8px 16px;
-            border: none;
-            border-radius: 4px;
-            cursor: pointer;
-            font-weight: 600;
-            font-size: 0.85rem;
-            display: inline-flex;
-            align-items: center;
-            gap: 6px;
-            transition: opacity 0.2s;
-        }
-
-        .btn:hover { opacity: 0.9; }
-        .btn-primary { background-color: var(--primary-color); color: white; }
-        .btn-secondary { background-color: #6c757d; color: white; }
-
-        /* Tarjetas KPI */
-        .kpi-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-            gap: 15px;
-            margin-bottom: 20px;
-        }
-
-        .kpi-card {
-            background-color: var(--card-bg);
-            padding: 15px;
-            border-radius: 8px;
-            box-shadow: 0 2px 4px rgba(0,0,0,0.05);
-            border-left: 5px solid var(--primary-color);
-            display: flex;
-            flex-direction: column;
-            justify-content: space-between;
-        }
-
-        .kpi-card.asistio { border-left-color: var(--color-asistio); }
-        .kpi-card.falto { border-left-color: var(--color-falto); }
-        .kpi-card.falta-marc { border-left-color: var(--color-falta-marc); }
-        .kpi-card.falta-tareo { border-left-color: var(--color-falta-tareo); }
-        .kpi-card.falta-ambos { border-left-color: var(--color-falta-ambos); }
-
-        .kpi-title {
-            font-size: 0.8rem;
-            font-weight: 700;
-            text-transform: uppercase;
-            color: var(--text-muted);
-            margin-bottom: 8px;
-        }
-
-        .kpi-value {
-            font-size: 1.8rem;
-            font-weight: 700;
-            color: var(--text-main);
-        }
-
-        /* Gráficos */
-        .charts-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
-            gap: 20px;
-            margin-bottom: 20px;
-        }
-
-        .chart-card {
-            background-color: var(--card-bg);
-            padding: 15px;
-            border-radius: 8px;
-            box-shadow: 0 2px 4px rgba(0,0,0,0.05);
-            border: 1px solid var(--border-color);
-        }
-
-        .chart-card h3 {
-            font-size: 1rem;
-            color: var(--primary-color);
-            margin-bottom: 15px;
-            border-bottom: 1px solid var(--border-color);
-            padding-bottom: 8px;
-        }
-
-        .chart-container {
-            position: relative;
-            height: 260px;
-            width: 100%;
-        }
-
-        /* Contenedores de Tablas */
-        .table-card {
-            background-color: var(--card-bg);
-            padding: 15px;
-            border-radius: 8px;
-            box-shadow: 0 2px 4px rgba(0,0,0,0.05);
-            border: 1px solid var(--border-color);
-            margin-bottom: 20px;
-        }
-
-        .table-header-title {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-bottom: 15px;
-            border-bottom: 1px solid var(--border-color);
-            padding-bottom: 8px;
-        }
-
-        .table-header-title h3 {
-            font-size: 1rem;
-            color: var(--primary-color);
-        }
-
-        .table-responsive {
-            width: 100%;
-            overflow-x: auto;
-            -webkit-overflow-scrolling: touch;
-        }
-
-        table.custom-table {
-            width: 100%;
-            border-collapse: collapse;
-            font-size: 0.85rem;
-            white-space: nowrap;
-        }
-
-        table.custom-table th, table.custom-table td {
-            padding: 8px 10px;
-            border: 1px solid var(--border-color);
-            text-align: center;
-        }
-
-        table.custom-table th {
-            background-color: var(--primary-color);
-            color: white;
-            font-weight: 600;
-            position: sticky;
-            top: 0;
-            z-index: 2;
-        }
-
-        /* Celdas Encabezado Matriz */
-        th.matrix-header-date {
-            background-color: var(--primary-light);
-            vertical-align: middle;
-            min-width: 90px;
-            padding: 4px;
-        }
-
-        .header-day-name {
-            font-size: 0.75rem;
-            font-weight: 700;
-            text-transform: lowercase;
-            color: #e0f2fe;
-            display: block;
-        }
-
-        .header-date-num {
-            font-size: 0.85rem;
-            font-weight: 600;
-            display: block;
-        }
-
-        .header-day-total {
-            font-size: 0.75rem;
-            font-weight: 700;
-            background-color: rgba(255, 255, 255, 0.2);
-            border-radius: 3px;
-            padding: 2px 4px;
-            margin-top: 2px;
-            display: inline-block;
-            color: #fff;
-        }
-
-        /* Columnas Fijas para DNI y Nombre */
-        .sticky-col {
-            position: sticky;
-            background-color: white;
-            z-index: 1;
-            text-align: left !important;
-        }
-
-        th.sticky-col {
-            z-index: 3;
-            background-color: var(--primary-color);
-        }
-
-        .sticky-col-1 { left: 0; min-width: 90px; }
-        .sticky-col-2 { left: 90px; min-width: 180px; border-right: 2px solid #ccc !important; }
-
-        tr:nth-child(even) .sticky-col { background-color: #f9f9f9; }
-
-        /* Estilos de Badges */
-        .badge-status {
-            display: inline-block;
-            padding: 4px 8px;
-            border-radius: 4px;
-            font-weight: 600;
-            font-size: 0.75rem;
-            text-align: center;
-            width: 100%;
-            box-shadow: 0 1px 2px rgba(0,0,0,0.05);
-        }
-
-        .badge-asistio { background-color: var(--bg-asistio); color: var(--color-asistio); border: 1px solid #a5d6a7; }
-        .badge-falto { background-color: var(--bg-falto); color: var(--color-falto); border: 1px solid #ef9a9a; }
-        .badge-feriado { background-color: var(--bg-feriado); color: var(--color-feriado); border: 1px solid #ffcc80; }
-        .badge-inactivo { background-color: var(--bg-inactivo); color: var(--color-inactivo); border: 1px solid #e0e0e0; }
-
-        /* Paginación */
-        .pagination-container {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-top: 15px;
-            flex-wrap: wrap;
-            gap: 10px;
-            font-size: 0.85rem;
-            color: var(--text-muted);
-        }
-
-        .pagination-controls {
-            display: flex;
-            align-items: center;
-            gap: 8px;
-        }
-
-        .pagination-btn {
-            padding: 6px 12px;
-            border: 1px solid var(--border-color);
-            background-color: white;
-            color: var(--text-main);
-            border-radius: 4px;
-            cursor: pointer;
-            font-weight: 600;
-        }
-
-        .pagination-btn:disabled { opacity: 0.5; cursor: not-allowed; }
-        .pagination-btn:not(:disabled):hover { background-color: var(--bg-color); border-color: var(--primary-color); }
-
-        .cell-tooltip { position: relative; cursor: pointer; }
-
-        footer {
-            text-align: center;
-            padding: 15px;
-            color: var(--text-muted);
-            font-size: 0.8rem;
-            margin-top: 20px;
-        }
-
-        @media (max-width: 768px) {
-            header { flex-direction: column; align-items: flex-start; gap: 10px; }
-            .kpi-grid { grid-template-columns: 1fr 1fr; }
-            .sticky-col-2 { min-width: 130px; }
-        }
-    </style>
+  <style>
+    .badge-asistio { background-color: #dcfce7; color: #15803d; }
+    .badge-falto { background-color: #fee2e2; color: #b91c1c; }
+    .badge-feriado { background-color: #fef3c7; color: #b45309; }
+    .badge-inactivo { background-color: #f3f4f6; color: #4b5563; }
+    .alert-amarillo { background-color: #fef9c3; color: #854d0e; }
+    .alert-rojo { background-color: #fee2e2; color: #991b1b; }
+  </style>
 </head>
-<body>
+<body class="bg-gray-50 text-gray-800 font-sans pb-10">
 
-    <header>
-        <h1><i class="fa-solid fa-clipboard-user"></i> Control de Asistencia PWA</h1>
-        <div class="user-info">
-            <i class="fa-solid fa-circle-user"></i> <span>Administrador</span>
+  <!-- Header / Navbar -->
+  <header class="bg-white shadow-md sticky top-0 z-50">
+    <div class="max-w-7xl mx-auto px-4 py-3 flex justify-between items-center flex-wrap gap-3">
+      <div class="flex items-center space-x-3">
+        <svg class="h-10 w-10" viewBox="0 0 100 100">
+          <circle cx="50" cy="50" r="45" fill="none" stroke="#2e7d32" stroke-width="4"/>
+          <path d="M 30 65 C 30 35, 70 35, 70 65 C 60 75, 40 75, 30 65 Z" fill="#d32f2f"/>
+          <path d="M 45 20 C 35 30, 45 45, 55 35 C 65 25, 55 10, 45 20 Z" fill="#2e7d32"/>
+        </svg>
+        <div>
+          <h1 class="text-xl font-bold text-gray-900 leading-none">Agrícola Huarmey</h1>
+          <span class="text-xs text-emerald-700 font-semibold">Gestión de Asistencia</span>
         </div>
-    </header>
-
-    <!-- Sección Filtros -->
-    <section class="filters-section">
-        <div class="filters-title">
-            <i class="fa-solid fa-filter"></i> Filtros de Búsqueda
+      </div>
+      
+      <!-- Estado de Conexión Directa y Botón Sincronizar -->
+      <div class="flex items-center gap-2">
+        <div id="connectionStatus" class="flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold bg-gray-100 text-gray-600 border border-gray-200">
+          <span class="w-2 h-2 rounded-full bg-gray-400" id="statusDot"></span>
+          <span id="statusText">Iniciando...</span>
         </div>
-        <div class="filters-grid">
-            <div class="filter-group">
-                <label for="filterFechaInicio">Fecha Inicio</label>
-                <input type="date" id="filterFechaInicio">
-            </div>
-            <div class="filter-group">
-                <label for="filterFechaFin">Fecha Fin</label>
-                <input type="date" id="filterFechaFin">
-            </div>
-            <div class="filter-group">
-                <label for="filterSemana">Semana</label>
-                <select id="filterSemana">
-                    <option value="">Todas</option>
-                </select>
-            </div>
-            <div class="filter-group">
-                <label for="filterDni">DNI</label>
-                <input type="text" id="filterDni" placeholder="Buscar por DNI...">
-            </div>
-            <div class="filter-group">
-                <label for="filterNombre">Apellidos y Nombres</label>
-                <input type="text" id="filterNombre" placeholder="Buscar por nombre...">
-            </div>
-            <div class="filter-group">
-                <label for="filterSexo">Sexo</label>
-                <select id="filterSexo">
-                    <option value="">Todos</option>
-                    <option value="M">Masculino (M)</option>
-                    <option value="F">Femenino (F)</option>
-                </select>
-            </div>
-            <div class="filter-group">
-                <label for="filterModalidad">Modalidad Contratación</label>
-                <select id="filterModalidad">
-                    <option value="">Todas</option>
-                </select>
-            </div>
+
+        <button id="btnSync" onclick="sincronizarDatos(true)" class="flex items-center gap-1 bg-emerald-600 hover:bg-emerald-700 text-white text-xs px-3 py-2 rounded-lg font-medium shadow-sm transition">
+          <i data-lucide="refresh-cw" class="w-4 h-4" id="syncIcon"></i> Sincronizar
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <main class="max-w-7xl mx-auto px-4 mt-6 space-y-6">
+
+    <!-- Tarjetas KPI -->
+    <div class="grid grid-cols-2 md:grid-cols-5 gap-3">
+      <div class="bg-white p-4 rounded-xl shadow-sm border border-gray-100 flex flex-col justify-between">
+        <span class="text-xs font-semibold text-gray-500 uppercase">Total Asistencias</span>
+        <div class="flex items-end justify-between mt-2">
+          <span id="kpi-asistencias" class="text-2xl font-bold text-emerald-600">0</span>
+          <i data-lucide="user-check" class="w-6 h-6 text-emerald-500"></i>
         </div>
-        <div class="filter-actions">
-            <button class="btn btn-secondary" onclick="limpiarFiltros()">
-                <i class="fa-solid fa-rotate-left"></i> Limpiar
-            </button>
-            <button class="btn btn-primary" onclick="aplicarFiltros()">
-                <i class="fa-solid fa-magnifying-glass"></i> Aplicar Filtros
-            </button>
+      </div>
+      <div class="bg-white p-4 rounded-xl shadow-sm border border-gray-100 flex flex-col justify-between">
+        <span class="text-xs font-semibold text-gray-500 uppercase">Faltas (Alerta)</span>
+        <div class="flex items-end justify-between mt-2">
+          <span id="kpi-faltas" class="text-2xl font-bold text-red-600">0</span>
+          <i data-lucide="user-x" class="w-6 h-6 text-red-500"></i>
         </div>
-    </section>
-
-    <!-- Indicadores KPI -->
-    <section class="kpi-grid">
-        <div class="kpi-card asistio">
-            <div class="kpi-title">TOTAL ASISTIERON</div>
-            <div class="kpi-value" id="kpiTotalAsistio">0</div>
+      </div>
+      <div class="bg-white p-4 rounded-xl shadow-sm border border-gray-100 flex flex-col justify-between">
+        <span class="text-xs font-semibold text-gray-500 uppercase">Falta Marcación</span>
+        <div class="flex items-end justify-between mt-2">
+          <span id="kpi-falta-marcacion" class="text-2xl font-bold text-amber-600">0</span>
+          <i data-lucide="clock-alert" class="w-6 h-6 text-amber-500"></i>
         </div>
-        <div class="kpi-card falto">
-            <div class="kpi-title">TOTAL FALTARON</div>
-            <div class="kpi-value" id="kpiTotalFalto">0</div>
+      </div>
+      <div class="bg-white p-4 rounded-xl shadow-sm border border-gray-100 flex flex-col justify-between">
+        <span class="text-xs font-semibold text-gray-500 uppercase">Falta Tareo</span>
+        <div class="flex items-end justify-between mt-2">
+          <span id="kpi-falta-tareo" class="text-2xl font-bold text-amber-600">0</span>
+          <i data-lucide="clipboard-x" class="w-6 h-6 text-amber-500"></i>
         </div>
-        <div class="kpi-card falta-marc">
-            <div class="kpi-title">FALTA MARCACIÓN</div>
-            <div class="kpi-value" id="kpiFaltaMarcacion">0</div>
+      </div>
+      <div class="col-span-2 md:col-span-1 bg-white p-4 rounded-xl shadow-sm border border-gray-100 flex flex-col justify-between">
+        <span class="text-xs font-semibold text-gray-500 uppercase">Falta Tareo y Marcación</span>
+        <div class="flex items-end justify-between mt-2">
+          <span id="kpi-falta-ambos" class="text-2xl font-bold text-red-700">0</span>
+          <i data-lucide="alert-triangle" class="w-6 h-6 text-red-600"></i>
         </div>
-        <div class="kpi-card falta-tareo">
-            <div class="kpi-title">FALTA TAREO</div>
-            <div class="kpi-value" id="kpiFaltaTareo">0</div>
+      </div>
+    </div>
+
+    <!-- Dashboards -->
+    <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+      <div class="bg-white p-4 rounded-xl shadow-sm border border-gray-100">
+        <h3 class="text-sm font-bold text-gray-700 mb-3 flex items-center gap-2"><i data-lucide="users" class="w-4 h-4 text-emerald-600"></i> Distribución por Sexo</h3>
+        <div class="h-44 relative"><canvas id="chartSexo"></canvas></div>
+      </div>
+      <div class="bg-white p-4 rounded-xl shadow-sm border border-gray-100">
+        <h3 class="text-sm font-bold text-gray-700 mb-3 flex items-center gap-2"><i data-lucide="history" class="w-4 h-4 text-emerald-600"></i> Distribución Histórica</h3>
+        <div class="h-44 relative"><canvas id="chartHistorico"></canvas></div>
+      </div>
+      <div class="bg-white p-4 rounded-xl shadow-sm border border-gray-100">
+        <h3 class="text-sm font-bold text-gray-700 mb-3 flex items-center gap-2"><i data-lucide="briefcase" class="w-4 h-4 text-emerald-600"></i> Modalidad Contratación</h3>
+        <div class="h-44 relative"><canvas id="chartModalidad"></canvas></div>
+      </div>
+    </div>
+
+    <!-- Panel de Filtros -->
+    <div class="bg-white p-4 rounded-xl shadow-sm border border-gray-100 space-y-3">
+      <div class="flex justify-between items-center">
+        <span class="text-xs font-bold text-gray-500 uppercase tracking-wider block">Filtros de Búsqueda</span>
+        <button onclick="exportarExcel()" class="flex items-center gap-1.5 bg-emerald-700 hover:bg-emerald-800 text-white text-xs px-3 py-1.5 rounded-lg font-medium shadow-sm transition">
+          <i data-lucide="file-spreadsheet" class="w-4 h-4"></i> Exportar a Excel
+        </button>
+      </div>
+
+      <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-2">
+        <input type="text" id="filterBusqueda" oninput="aplicarFiltros()" placeholder="DNI o Nombres..." class="p-2 border rounded-lg text-sm w-full">
+        <select id="filterSemana" onchange="aplicarFiltros()" class="p-2 border rounded-lg text-sm w-full"><option value="">Todas las Semanas</option></select>
+        <select id="filterMes" onchange="aplicarFiltros()" class="p-2 border rounded-lg text-sm w-full"><option value="">Todos los Meses</option></select>
+        <input type="date" id="filterFecha" onchange="aplicarFiltros()" class="p-2 border rounded-lg text-sm w-full">
+        <select id="filterAlerta" onchange="aplicarFiltros()" class="p-2 border rounded-lg text-sm w-full">
+          <option value="">Todas las Alertas</option>
+          <option value="FALTO">FALTO</option>
+          <option value="ASISTIO">ASISTIO</option>
+        </select>
+        <select id="filterEstadoAsistencia" onchange="aplicarFiltros()" class="p-2 border rounded-lg text-sm w-full">
+          <option value="">Todo Estado Asistencia</option>
+          <option value="FALTA MARCACION">FALTA MARCACION</option>
+          <option value="FALTA TAREO">FALTA TAREO</option>
+          <option value="FALTA TAREO Y FALTA MARCACION">FALTA TAREO Y MARCACION</option>
+        </select>
+      </div>
+
+      <div class="flex items-center gap-2 pt-2 border-t border-gray-100 flex-wrap">
+        <button onclick="limpiarFiltros()" class="text-xs bg-gray-100 text-gray-600 font-medium px-2.5 py-1 rounded-md hover:bg-gray-200 ml-auto">Limpiar Filtros</button>
+      </div>
+    </div>
+
+    <!-- 1. Matriz de Asistencia Individual por Fecha -->
+    <div class="bg-white p-4 rounded-xl shadow-sm border border-gray-100 overflow-hidden space-y-3">
+      <div class="flex justify-between items-center flex-wrap gap-2">
+        <h3 class="text-sm font-bold text-gray-700 flex items-center gap-2">
+          <i data-lucide="calendar" class="w-4 h-4 text-emerald-600"></i> Matriz de Asistencia Individual por Fecha
+        </h3>
+        <button onclick="toggleSortMatriz()" class="text-xs bg-gray-100 hover:bg-gray-200 text-gray-700 px-3 py-1.5 rounded-lg flex items-center gap-1 font-medium transition">
+          <i data-lucide="arrow-up-down" class="w-3.5 h-3.5"></i> Ordenar Nombres (<span id="matrizSortLabel">A-Z</span>)
+        </button>
+      </div>
+
+      <div class="overflow-x-auto">
+        <table class="w-full text-xs text-left border-collapse" id="tablaMatriz">
+          <thead class="bg-gray-50 text-gray-600 uppercase" id="matrizHeader">
+            <!-- Render Dinámico -->
+          </thead>
+          <tbody id="matrizBody" class="divide-y divide-gray-100">
+            <!-- Render Dinámico -->
+          </tbody>
+        </table>
+      </div>
+
+      <!-- Paginador Matriz -->
+      <div class="flex justify-between items-center text-xs text-gray-600 pt-2 border-t border-gray-100">
+        <span id="matrizPagInfo">Página 1 de 1</span>
+        <div class="flex gap-1">
+          <button onclick="cambiarPaginaMatriz(-1)" id="btnMatrizPrev" class="px-3 py-1 bg-gray-100 hover:bg-gray-200 rounded-md font-medium disabled:opacity-50">Anterior</button>
+          <button onclick="cambiarPaginaMatriz(1)" id="btnMatrizNext" class="px-3 py-1 bg-gray-100 hover:bg-gray-200 rounded-md font-medium disabled:opacity-50">Siguiente</button>
         </div>
-        <div class="kpi-card falta-ambos">
-            <div class="kpi-title">FALTA TAREO Y MARCACIÓN</div>
-            <div class="kpi-value" id="kpiFaltaTareoMarcacion">0</div>
+      </div>
+    </div>
+
+    <!-- 2. Detalle Completo de Registros -->
+    <div class="bg-white p-4 rounded-xl shadow-sm border border-gray-100 overflow-hidden space-y-3">
+      <div class="flex justify-between items-center flex-wrap gap-2">
+        <h3 class="text-sm font-bold text-gray-700 flex items-center gap-2">
+          <i data-lucide="table" class="w-4 h-4 text-emerald-600"></i> Detalle Completo de Registros
+        </h3>
+        <button onclick="toggleSortDetalle()" class="text-xs bg-gray-100 hover:bg-gray-200 text-gray-700 px-3 py-1.5 rounded-lg flex items-center gap-1 font-medium transition">
+          <i data-lucide="arrow-up-down" class="w-3.5 h-3.5"></i> Ordenar Nombres (<span id="detalleSortLabel">A-Z</span>)
+        </button>
+      </div>
+
+      <div class="overflow-x-auto">
+        <table class="w-full text-xs text-left border-collapse">
+          <thead class="bg-gray-100 text-gray-700 font-semibold uppercase">
+            <tr>
+              <th class="p-2 border">DNI</th>
+              <th class="p-2 border">Apellidos y Nombres</th>
+              <th class="p-2 border">Alerta Faltas</th>
+              <th class="p-2 border">Sem.</th>
+              <th class="p-2 border">Mes</th>
+              <th class="p-2 border">Día</th>
+              <th class="p-2 border">Fecha Índice</th>
+              <th class="p-2 border">Alerta</th>
+              <th class="p-2 border">Estado Asistencia</th>
+              <th class="p-2 border">Histórico</th>
+              <th class="p-2 border">Modalidad</th>
+              <th class="p-2 border">Placa</th>
+              <th class="p-2 border">Ruta</th>
+              <th class="p-2 border">Sexo</th>
+            </tr>
+          </thead>
+          <tbody id="tablaDetalle" class="divide-y divide-gray-100">
+            <!-- Render Dinámico -->
+          </tbody>
+        </table>
+      </div>
+
+      <!-- Paginador Detalle -->
+      <div class="flex justify-between items-center text-xs text-gray-600 pt-2 border-t border-gray-100">
+        <span id="detallePagInfo">Página 1 de 1</span>
+        <div class="flex gap-1">
+          <button onclick="cambiarPaginaDetalle(-1)" id="btnDetallePrev" class="px-3 py-1 bg-gray-100 hover:bg-gray-200 rounded-md font-medium disabled:opacity-50">Anterior</button>
+          <button onclick="cambiarPaginaDetalle(1)" id="btnDetalleNext" class="px-3 py-1 bg-gray-100 hover:bg-gray-200 rounded-md font-medium disabled:opacity-50">Siguiente</button>
         </div>
-    </section>
+      </div>
+    </div>
 
-    <!-- Gráficos -->
-    <section class="charts-grid">
-        <div class="chart-card">
-            <h3><i class="fa-solid fa-chart-bar"></i> Distribución Histórica</h3>
-            <div class="chart-container">
-                <canvas id="chartDistribucion"></canvas>
-            </div>
-        </div>
-        <div class="chart-card">
-            <h3><i class="fa-solid fa-chart-pie"></i> Modalidad Contratación</h3>
-            <div class="chart-container">
-                <canvas id="chartModalidad"></canvas>
-            </div>
-        </div>
-    </section>
+  </main>
 
-    <!-- Matriz de Asistencia -->
-    <section class="table-card">
-        <div class="table-header-title">
-            <h3><i class="fa-solid fa-table-cells"></i> Matriz de Asistencia Individual por Fecha</h3>
-        </div>
-        <div class="table-responsive">
-            <table class="custom-table" id="tablaMatriz">
-                <thead id="theadMatriz"></thead>
-                <tbody id="tbodyMatriz"></tbody>
-            </table>
-        </div>
-        <div class="pagination-container">
-            <div id="infoPaginacionMatriz">Mostrando 0 - 0 de 0 registros</div>
-            <div class="pagination-controls">
-                <button class="pagination-btn" id="btnMatrizPrev" onclick="cambiarPaginaMatriz(-1)">
-                    <i class="fa-solid fa-chevron-left"></i> Anterior
-                </button>
-                <span id="labelPaginaMatriz">Página 1 de 1</span>
-                <button class="pagination-btn" id="btnMatrizNext" onclick="cambiarPaginaMatriz(1)">
-                    Siguiente <i class="fa-solid fa-chevron-right"></i>
-                </button>
-            </div>
-        </div>
-    </section>
+  <script>
+    // Registrar Plugin DataLabels de Chart.js
+    if (window.ChartDataLabels) {
+      Chart.register(ChartDataLabels);
+    }
 
-    <!-- Tabla Detalle Completo -->
-    <section class="table-card">
-        <div class="table-header-title">
-            <h3><i class="fa-solid fa-list-check"></i> Detalle Completo de Registros</h3>
-        </div>
-        <div class="table-responsive">
-            <table class="custom-table" id="tablaDetalle">
-                <thead>
-                    <tr>
-                        <th>Fecha</th>
-                        <th>Semana</th>
-                        <th>DNI</th>
-                        <th>Apellidos y Nombres</th>
-                        <th>Sexo</th>
-                        <th>Modalidad</th>
-                        <th>Fecha Contrato</th>
-                        <th>Alerta</th>
-                        <th>Estado Asistencia</th>
-                    </tr>
-                </thead>
-                <tbody id="tbodyDetalle"></tbody>
-            </table>
-        </div>
-        <div class="pagination-container">
-            <div id="infoPaginacionDetalle">Mostrando 0 - 0 de 0 registros</div>
-            <div class="pagination-controls">
-                <button class="pagination-btn" id="btnDetallePrev" onclick="cambiarPaginaDetalle(-1)">
-                    <i class="fa-solid fa-chevron-left"></i> Anterior
-                </button>
-                <span id="labelPaginaDetalle">Página 1 de 1</span>
-                <button class="pagination-btn" id="btnDetalleNext" onclick="cambiarPaginaDetalle(1)">
-                    Siguiente <i class="fa-solid fa-chevron-right"></i>
-                </button>
-            </div>
-        </div>
-    </section>
+    // Link Directo de Google Apps Script
+    const gasUrl = "https://script.google.com/macros/s/AKfycbwBM7oIzoPih-jFPRV9KjLgiGyijEgl-giJsxCvajRlgGrDpLiEjrOn3WCzOOCKINIC/exec";
+    
+    let dbData = [];
+    let filteredData = [];
+    let charts = {};
 
-    <footer>
-        Sistema de Control de Asistencia PWA &copy; 2026 - Todos los derechos reservados.
-    </footer>
+    // Paginación ajustada a 50 por página
+    const PAGE_SIZE = 50;
+    let pagMatriz = 1;
+    let sortMatrizAsc = true;
 
-    <script>
-        // Registrar Plugin de etiquetas de datos en Chart.js
-        Chart.register(ChartDataLabels);
+    let pagDetalle = 1;
+    let sortDetalleAsc = true;
 
-        // Variables de Estado
-        let rawData = [];
-        let feriadosList = ["2026-01-01", "2026-04-02", "2026-04-03", "2026-05-01", "2026-06-29", "2026-07-28", "2026-07-29", "2026-08-06", "2026-08-30", "2026-10-08", "2026-11-01", "2026-12-08", "2026-12-25"];
-        let filteredRecords = [];
-        let workersList = [];
-        
-        // Paginación (50 por página)
-        const PAGE_SIZE = 50;
-        let currentPageMatriz = 1;
-        let currentPageDetalle = 1;
+    document.addEventListener("DOMContentLoaded", async () => {
+      lucide.createIcons();
+      await initDB();
+      await cargarDatosLocal();
+      sincronizarDatos();
 
-        // Instancias de Gráficos
-        let chartDistribucionInst = null;
-        let chartModalidadInst = null;
+      if ('serviceWorker' in navigator) {
+        navigator.serviceWorker.register('service-worker.js');
+      }
+    });
 
-        // Helper: Normalización de Textos
-        function normalizeStr(str) {
-            if (!str) return "";
-            return str.toString()
-                .trim()
-                .toUpperCase()
-                .normalize("NFD")
-                .replace(/[\u0300-\u036f]/g, "");
-        }
+    // Formateador de Fecha con Día: YYYY-MM-DD -> lun. 20/08/26
+    function formatFechaShortConDia(fechaStr) {
+      if (!fechaStr) return "";
+      const clean = fechaStr.toString().split("T")[0];
+      const parts = clean.split("-");
 
-        // Helper: Manejo de Fechas
-        function parseDate(dateStr) {
-            if (!dateStr) return null;
-            if (dateStr.includes('-')) {
-                const parts = dateStr.split('-');
-                if (parts[0].length === 4) return new Date(parseInt(parts[0]), parseInt(parts[1]) - 1, parseInt(parts[2]));
-            }
-            if (dateStr.includes('/')) {
-                const parts = dateStr.split('/');
-                if (parts.length === 3) return new Date(parseInt(parts[2]), parseInt(parts[1]) - 1, parseInt(parts[0]));
-            }
-            const d = new Date(dateStr);
-            return isNaN(d.getTime()) ? null : d;
-        }
+      if (parts.length === 3) {
+        const year = parseInt(parts[0], 10);
+        const month = parseInt(parts[1], 10) - 1;
+        const day = parseInt(parts[2], 10);
 
-        function formatDateShort(dateStr) {
-            const d = parseDate(dateStr);
-            if (!d) return dateStr;
-            const day = String(d.getDate()).padStart(2, '0');
-            const month = String(d.getMonth() + 1).padStart(2, '0');
-            return `${day}/${month}`;
-        }
+        const fechaObj = new Date(year, month, day);
+        const dias = ["dom", "lun", "mar", "mier", "jue", "vie", "sab"];
+        const nombreDia = dias[fechaObj.getDay()];
 
-        function getDayNameShort(dateStr) {
-            const d = parseDate(dateStr);
-            if (!d) return "";
-            const days = ["dom", "lun", "mar", "mié", "jue", "vie", "sáb"];
-            return days[d.getDay()];
-        }
+        const yy = parts[0].slice(-2);
+        return {
+          dia: nombreDia,
+          fecha: `${parts[2]}/${parts[1]}/${yy}`
+        };
+      }
+      return { dia: "", fecha: fechaStr };
+    }
 
-        // Datos Iniciales de Prueba
-        function generateMockData() {
-            const names = [
-                { dni: "70112233", nombre: "JUAN CARLOS PEREZ GOMEZ", sexo: "M", modalidad: "PLANILLA", fecContrato: "2026-08-01" },
-                { dni: "70223344", nombre: "PEDRO LUIS RAMIREZ SILVA", sexo: "M", modalidad: "PLANILLA", fecContrato: "2026-08-05" },
-                { dni: "70334455", nombre: "MARIA ELENA ROJAS TORRES", sexo: "F", modalidad: "EVENTUAL", fecContrato: "2026-08-10" },
-                { dni: "70445566", nombre: "JOSE MANUEL CHAVEZ JULCA", sexo: "M", modalidad: "PLANILLA", fecContrato: "2026-08-01" },
-                { dni: "70556677", nombre: "LUCIA ESPINOSA ALVAREZ", sexo: "F", modalidad: "RHE", fecContrato: "2026-08-15" },
-                { dni: "70667788", nombre: "CARLOS ALBERTO MEDINA PAZ", sexo: "M", modalidad: "EVENTUAL", fecContrato: "2026-08-18" }
-            ];
+    function formatFechaShort(fechaStr) {
+      const res = formatFechaShortConDia(fechaStr);
+      return res.fecha;
+    }
 
-            const dates = ["2026-08-17", "2026-08-18", "2026-08-19", "2026-08-20", "2026-08-21", "2026-08-22", "2026-08-30"];
-            const alerts = ["ASISTIO", "FALTO"];
-            const estados = ["NORMAL", "FALTA MARCACIÓN", "FALTA TAREO", "FALTA TAREO Y FALTA MARCACIÓN"];
+    // Configuración IndexedDB
+    function initDB() {
+      return new Promise((resolve, reject) => {
+        const request = indexedDB.open("AgricolaHuarmeyDB", 2);
+        request.onupgradeneeded = (e) => {
+          const db = e.target.result;
+          if (!db.objectStoreNames.contains("asistencia")) {
+            db.createObjectStore("asistencia", { keyPath: "id", autoIncrement: true });
+          }
+        };
+        request.onsuccess = () => resolve(request.result);
+        request.onerror = (e) => reject(e);
+      });
+    }
 
-            let data = [];
-            names.forEach(worker => {
-                dates.forEach(fecha => {
-                    let alertVal = alerts[Math.floor(Math.random() * alerts.length)];
-                    let estadoVal = "NORMAL";
+    async function guardarLocal(datos) {
+      const db = await initDB();
+      const tx = db.transaction("asistencia", "readwrite");
+      const store = tx.objectStore("asistencia");
+      store.clear();
+      datos.forEach(item => store.add(item));
+    }
 
-                    if (alertVal === "ASISTIO") {
-                        const rand = Math.random();
-                        if (rand < 0.15) estadoVal = "FALTA MARCACIÓN";
-                        else if (rand < 0.25) estadoVal = "FALTA TAREO";
-                        else if (rand < 0.35) estadoVal = "FALTA TAREO Y FALTA MARCACIÓN";
-                    }
+    async function cargarDatosLocal() {
+      const db = await initDB();
+      const tx = db.transaction("asistencia", "readonly");
+      const store = tx.objectStore("asistencia");
+      const req = store.getAll();
+      return new Promise((resolve) => {
+        req.onsuccess = () => {
+          if (req.result.length > 0) {
+            dbData = req.result;
+            procesarYRenderizar(dbData);
+          }
+          resolve();
+        };
+      });
+    }
 
-                    data.push({
-                        fecha: fecha,
-                        semana: "SEM 34",
-                        dni: worker.dni,
-                        nombre: worker.nombre,
-                        sexo: worker.sexo,
-                        modalidad: worker.modalidad,
-                        fechaContrato: worker.fecContrato,
-                        alerta: alertVal,
-                        estadoAsistencia: estadoVal
-                    });
-                });
-            });
+    function setConnectionStatus(status, message) {
+      const box = document.getElementById("connectionStatus");
+      const dot = document.getElementById("statusDot");
+      const txt = document.getElementById("statusText");
 
-            return data;
-        }
+      if (status === "connecting") {
+        box.className = "flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold bg-amber-50 text-amber-700 border border-amber-200";
+        dot.className = "w-2 h-2 rounded-full bg-amber-500 animate-pulse";
+        txt.innerText = message || "Conectando...";
+      } else if (status === "online") {
+        box.className = "flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold bg-emerald-50 text-emerald-700 border border-emerald-200";
+        dot.className = "w-2 h-2 rounded-full bg-emerald-500";
+        txt.innerText = message || "Conectado a Google Sheets";
+      } else if (status === "offline") {
+        box.className = "flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold bg-red-50 text-red-700 border border-red-200";
+        dot.className = "w-2 h-2 rounded-full bg-red-500";
+        txt.innerText = message || "Sin Conexión";
+      }
+    }
 
-        window.addEventListener('DOMContentLoaded', () => {
-            rawData = generateMockData();
-            poblarOpcionesFiltros();
-            aplicarFiltros();
+    // Sincronización Directa
+    async function sincronizarDatos(manual = false) {
+      setConnectionStatus("connecting", "Sincronizando...");
+      const icon = document.getElementById("syncIcon");
+      if(icon) icon.classList.add("animate-spin");
+
+      try {
+        const response = await fetch(gasUrl, {
+          method: 'GET',
+          mode: 'cors',
+          redirect: 'follow',
+          headers: { 'Accept': 'application/json' }
         });
 
-        function poblarOpcionesFiltros() {
-            const semanas = [...new Set(rawData.map(r => r.semana))].filter(Boolean);
-            const modalidades = [...new Set(rawData.map(r => r.modalidad))].filter(Boolean);
+        if (!response.ok) throw new Error(`Status HTTP: ${response.status}`);
 
-            const selSemana = document.getElementById('filterSemana');
-            semanas.forEach(s => {
-                const opt = document.createElement('option');
-                opt.value = s;
-                opt.textContent = s;
-                selSemana.appendChild(opt);
-            });
+        const json = await response.json();
 
-            const selModalidad = document.getElementById('filterModalidad');
-            modalidades.forEach(m => {
-                const opt = document.createElement('option');
-                opt.value = m;
-                opt.textContent = m;
-                selModalidad.appendChild(opt);
-            });
+        if (json.status === "success" && Array.isArray(json.data)) {
+          dbData = json.data;
+          await guardarLocal(dbData);
+          procesarYRenderizar(dbData);
+          setConnectionStatus("online", "Conectado a Google Sheets");
+        } else {
+          throw new Error(json.message || "Error en datos devueltos");
         }
+      } catch (err) {
+        console.error("Error en conexión:", err);
+        setConnectionStatus("offline", dbData.length > 0 ? "Sin Conexión (Usando Local)" : "Sin Conexión");
+      } finally {
+        if(icon) icon.classList.remove("animate-spin");
+      }
+    }
 
-        // Lógica de Filtros
-        function aplicarFiltros() {
-            const fecInicio = document.getElementById('filterFechaInicio').value;
-            const fecFin = document.getElementById('filterFechaFin').value;
-            const semana = document.getElementById('filterSemana').value;
-            const dni = normalizeStr(document.getElementById('filterDni').value);
-            const nombre = normalizeStr(document.getElementById('filterNombre').value);
-            const sexo = document.getElementById('filterSexo').value;
-            const modalidad = document.getElementById('filterModalidad').value;
+    function procesarYRenderizar(data) {
+      filteredData = [...data];
+      poblarFiltros(data);
+      renderKpis(filteredData);
+      renderCharts(filteredData);
+      pagMatriz = 1;
+      pagDetalle = 1;
+      renderMatriz(filteredData);
+      renderTabla(filteredData);
+    }
 
-            filteredRecords = rawData.filter(r => {
-                if (fecInicio && r.fecha < fecInicio) return false;
-                if (fecFin && r.fecha > fecFin) return false;
-                if (semana && r.semana !== semana) return false;
-                if (dni && !normalizeStr(r.dni).includes(dni)) return false;
-                if (nombre && !normalizeStr(r.nombre).includes(nombre)) return false;
-                if (sexo && r.sexo !== sexo) return false;
-                if (modalidad && r.modalidad !== modalidad) return false;
-                return true;
-            });
+    // Conteo exacto para KPIs incluyendo combinaciones
+    function renderKpis(data) {
+      let asistencias = 0, faltas = 0, faltaMarc = 0, faltaTareo = 0, faltaAmbos = 0;
 
-            currentPageMatriz = 1;
-            currentPageDetalle = 1;
+      data.forEach(item => {
+        if (item.ALERTA === "ASISTIO") asistencias++;
+        if (item.ALERTA === "FALTO") faltas++;
+        
+        const est = (item.ESTADO_ASISTENCIA || "").trim().toUpperCase();
 
-            actualizarTodo();
+        if (est.includes("FALTA MARCACION") && est.includes("FALTA TAREO")) {
+          faltaAmbos++;
+        } else if (est.includes("FALTA MARCACION")) {
+          faltaMarc++;
+        } else if (est.includes("FALTA TAREO")) {
+          faltaTareo++;
         }
+      });
 
-        function limpiarFiltros() {
-            document.getElementById('filterFechaInicio').value = '';
-            document.getElementById('filterFechaFin').value = '';
-            document.getElementById('filterSemana').value = '';
-            document.getElementById('filterDni').value = '';
-            document.getElementById('filterNombre').value = '';
-            document.getElementById('filterSexo').value = '';
-            document.getElementById('filterModalidad').value = '';
+      document.getElementById("kpi-asistencias").innerText = asistencias;
+      document.getElementById("kpi-faltas").innerText = faltas;
+      document.getElementById("kpi-falta-marcacion").innerText = faltaMarc;
+      document.getElementById("kpi-falta-tareo").innerText = faltaTareo;
+      document.getElementById("kpi-falta-ambos").innerText = faltaAmbos;
+    }
 
-            aplicarFiltros();
-        }
+    function renderCharts(data) {
+      const getCounts = (key) => data.reduce((acc, curr) => {
+        const val = curr[key] || "Desconocido";
+        acc[val] = (acc[val] || 0) + 1;
+        return acc;
+      }, {});
 
-        function actualizarTodo() {
-            actualizarKPIs();
-            actualizarGraficoDistribucion();
-            actualizarGraficoModalidad();
-            actualizarMatriz();
-            actualizarTablaDetalle();
-        }
+      const sexoCounts = getCounts("SEXO");
+      const histCounts = getCounts("HISTORICO");
+      const modCounts = getCounts("MODALIDAD");
 
-        // 1. ACTUALIZACIÓN DE KPIS
-        function actualizarKPIs() {
-            let totalAsistio = 0;
-            let totalFalto = 0;
-            let faltaMarcacion = 0;
-            let faltaTareo = 0;
-            let faltaTareoMarcacion = 0;
+      createChart("chartSexo", "doughnut", ["MASCULINO", "FEMENINO"], [sexoCounts["M"] || 0, sexoCounts["F"] || 0], ["#d32f2f", "#2e7d32"]);
+      createChart("chartHistorico", "bar", Object.keys(histCounts), Object.values(histCounts), "#2e7d32");
+      createChart("chartModalidad", "pie", Object.keys(modCounts), Object.values(modCounts), ["#d32f2f", "#4caf50", "#ff9800", "#2196f3", "#9c27b0"]);
+    }
 
-            filteredRecords.forEach(r => {
-                const alertaNorm = normalizeStr(r.alerta);
-                const estadoNorm = normalizeStr(r.estadoAsistencia);
-
-                if (alertaNorm === "ASISTIO") totalAsistio++;
-                if (alertaNorm === "FALTO") totalFalto++;
-
-                if (estadoNorm === "FALTA MARCACION") {
-                    faltaMarcacion++;
-                } else if (estadoNorm === "FALTA TAREO") {
-                    faltaTareo++;
-                } else if (estadoNorm === "FALTA TAREO Y FALTA MARCACION" || estadoNorm === "FALTA TAREO Y MARCACION") {
-                    faltaTareoMarcacion++;
-                }
-            });
-
-            document.getElementById('kpiTotalAsistio').textContent = totalAsistio.toLocaleString();
-            document.getElementById('kpiTotalFalto').textContent = totalFalto.toLocaleString();
-            document.getElementById('kpiFaltaMarcacion').textContent = faltaMarcacion.toLocaleString();
-            document.getElementById('kpiFaltaTareo').textContent = faltaTareo.toLocaleString();
-            document.getElementById('kpiFaltaTareoMarcacion').textContent = faltaTareoMarcacion.toLocaleString();
-        }
-
-        // 2 & 3. MATRIZ DE ASISTENCIA CON DÍAS Y TOTALES
-        function actualizarMatriz() {
-            const thead = document.getElementById('theadMatriz');
-            const tbody = document.getElementById('tbodyMatriz');
-            thead.innerHTML = '';
-            tbody.innerHTML = '';
-
-            const dates = [...new Set(filteredRecords.map(r => r.fecha))].sort();
-
-            const totalsPerDate = {};
-            dates.forEach(d => {
-                const workersForDate = new Set(filteredRecords.filter(r => r.fecha === d).map(r => r.dni));
-                totalsPerDate[d] = workersForDate.size;
-            });
-
-            let headerRow = `<tr>
-                <th class="sticky-col sticky-col-1">DNI</th>
-                <th class="sticky-col sticky-col-2">Apellidos y Nombres</th>`;
-            
-            dates.forEach(d => {
-                const dayName = getDayNameShort(d);
-                const dateShort = formatDateShort(d);
-                const count = totalsPerDate[d] || 0;
-
-                headerRow += `
-                    <th class="matrix-header-date">
-                        <span class="header-day-name">${dayName}</span>
-                        <span class="header-date-num">${dateShort}</span>
-                        <span class="header-day-total">${count} pers.</span>
-                    </th>`;
-            });
-            headerRow += `</tr>`;
-            thead.innerHTML = headerRow;
-
-            const workerMap = new Map();
-            filteredRecords.forEach(r => {
-                if (!workerMap.has(r.dni)) {
-                    workerMap.set(r.dni, {
-                        dni: r.dni,
-                        nombre: r.nombre,
-                        fechaContrato: r.fechaContrato
-                    });
-                }
-            });
-
-            workersList = Array.from(workerMap.values());
-
-            const totalWorkers = workersList.length;
-            const totalPages = Math.ceil(totalWorkers / PAGE_SIZE) || 1;
-            if (currentPageMatriz > totalPages) currentPageMatriz = totalPages;
-
-            const startIndex = (currentPageMatriz - 1) * PAGE_SIZE;
-            const endIndex = Math.min(startIndex + PAGE_SIZE, totalWorkers);
-            const pagedWorkers = workersList.slice(startIndex, endIndex);
-
-            pagedWorkers.forEach(worker => {
-                let rowHtml = `<tr>
-                    <td class="sticky-col sticky-col-1">${worker.dni}</td>
-                    <td class="sticky-col sticky-col-2">${worker.nombre}</td>`;
-
-                dates.forEach(d => {
-                    const statusObj = calcularEstadoMatriz(worker, d);
-                    rowHtml += `
-                        <td class="cell-tooltip" title="DNI: ${worker.dni}\nNombre: ${worker.nombre}\nFecha: ${d} (${getDayNameShort(d)})\nEstado: ${statusObj.textoCompleto}\nFec. Contrato: ${worker.fechaContrato || 'N/A'}">
-                            <span class="badge-status ${statusObj.cssClass}">
-                                ${statusObj.badgeText}
-                            </span>
-                        </td>`;
-                });
-
-                rowHtml += `</tr>`;
-                tbody.innerHTML += rowHtml;
-            });
-
-            document.getElementById('infoPaginacionMatriz').textContent = 
-                `Mostrando ${totalWorkers > 0 ? startIndex + 1 : 0} - ${endIndex} de ${totalWorkers} registros`;
-            document.getElementById('labelPaginaMatriz').textContent = `Página ${currentPageMatriz} de ${totalPages}`;
-            document.getElementById('btnMatrizPrev').disabled = (currentPageMatriz === 1);
-            document.getElementById('btnMatrizNext').disabled = (currentPageMatriz >= totalPages);
-        }
-
-        // Jerarquía de Prioridades en la Matriz
-        function calcularEstadoMatriz(worker, fechaStr) {
-            // Prioridad 1: FERIADO
-            if (feriadosList.includes(fechaStr)) {
-                return { badgeText: "FERIADO", textoCompleto: "Día feriado", cssClass: "badge-feriado" };
+    function createChart(canvasId, type, labels, data, colors) {
+      if (charts[canvasId]) charts[canvasId].destroy();
+      const ctx = document.getElementById(canvasId).getContext("2d");
+      
+      charts[canvasId] = new Chart(ctx, {
+        type: type,
+        data: {
+          labels: labels,
+          datasets: [{ data: data, backgroundColor: colors }]
+        },
+        options: { 
+          responsive: true, 
+          maintainAspectRatio: false,
+          plugins: {
+            datalabels: {
+              color: type === 'bar' ? '#1e293b' : '#ffffff',
+              font: { weight: 'bold', size: 10 },
+              anchor: type === 'bar' ? 'end' : 'center',
+              align: type === 'bar' ? 'top' : 'center',
+              formatter: (value) => value > 0 ? value : ''
             }
+          }
+        }
+      });
+    }
 
-            // Prioridad 2: INACTIVO
-            if (worker.fechaContrato && worker.fechaContrato > fechaStr) {
-                return { badgeText: "INACTIVO", textoCompleto: "Cosechador aún sin contratar", cssClass: "badge-inactivo" };
-            }
+    function poblarFiltros(data) {
+      const semanas = [...new Set(data.map(i => i.SEMANA))].filter(Boolean).sort();
+      const meses = [...new Set(data.map(i => i.MES))].filter(Boolean).sort();
+      
+      const selSemana = document.getElementById("filterSemana");
+      const selMes = document.getElementById("filterMes");
 
-            const rec = filteredRecords.find(r => r.dni === worker.dni && r.fecha === fechaStr);
-            const alerta = rec ? normalizeStr(rec.alerta) : "";
+      selSemana.innerHTML = '<option value="">Todas las Semanas</option>' + semanas.map(s => `<option value="${s}">Semana ${s}</option>`).join("");
+      selMes.innerHTML = '<option value="">Todos los Meses</option>' + meses.map(m => `<option value="${m}">${m}</option>`).join("");
+    }
 
-            // Prioridad 3: ASISTIO
-            if (alerta === "ASISTIO") {
-                return { badgeText: "ASISTIO", textoCompleto: "Cosechador asiste", cssClass: "badge-asistio" };
-            }
+    function aplicarFiltros() {
+      const busqueda = document.getElementById("filterBusqueda").value.toLowerCase();
+      const semana = document.getElementById("filterSemana").value;
+      const mes = document.getElementById("filterMes").value;
+      const fecha = document.getElementById("filterFecha").value;
+      const alerta = document.getElementById("filterAlerta").value;
+      const estAsist = document.getElementById("filterEstadoAsistencia").value;
 
-            // Prioridad 4: FALTO
-            return { badgeText: "FALTO", textoCompleto: "Cosechador FALTO", cssClass: "badge-falto" };
+      filteredData = dbData.filter(item => {
+        const matchBusqueda = (item.DNI || "").toString().toLowerCase().includes(busqueda) || (item.APELLIDOS_NOMBRES || "").toLowerCase().includes(busqueda);
+        const matchSemana = !semana || item.SEMANA == semana;
+        const matchMes = !mes || item.MES == mes;
+        const matchFecha = !fecha || item.FECHA_INDICE == fecha;
+        const matchAlerta = !alerta || item.ALERTA == alerta;
+        const matchEstado = !estAsist || (item.ESTADO_ASISTENCIA || "").includes(estAsist);
+
+        return matchBusqueda && matchSemana && matchMes && matchFecha && matchAlerta && matchEstado;
+      });
+
+      renderKpis(filteredData);
+      renderCharts(filteredData);
+      pagMatriz = 1;
+      pagDetalle = 1;
+      renderMatriz(filteredData);
+      renderTabla(filteredData);
+    }
+
+    function limpiarFiltros() {
+      document.getElementById("filterBusqueda").value = "";
+      document.getElementById("filterSemana").value = "";
+      document.getElementById("filterMes").value = "";
+      document.getElementById("filterFecha").value = "";
+      document.getElementById("filterAlerta").value = "";
+      document.getElementById("filterEstadoAsistencia").value = "";
+      procesarYRenderizar(dbData);
+    }
+
+    // --- LÓGICA DE LA MATRIZ DE ASISTENCIA ---
+    function toggleSortMatriz() {
+      sortMatrizAsc = !sortMatrizAsc;
+      document.getElementById("matrizSortLabel").innerText = sortMatrizAsc ? "A-Z" : "Z-A";
+      renderMatriz(filteredData);
+    }
+
+    function cambiarPaginaMatriz(dir) {
+      pagMatriz += dir;
+      renderMatriz(filteredData);
+    }
+
+    function renderMatriz(data) {
+      const fechas = [...new Set(data.map(i => i.FECHA_INDICE))].filter(Boolean).sort();
+      
+      // Totales de personas registradas por día (filas)
+      const personasPorFecha = {};
+      fechas.forEach(f => {
+        const dnisUnicos = new Set(data.filter(d => d.FECHA_INDICE === f).map(d => d.DNI));
+        personasPorFecha[f] = dnisUnicos.size;
+      });
+
+      // Obtener Empleados Únicos
+      let empleadosMap = {};
+      data.forEach(i => {
+        if (!empleadosMap[i.DNI]) {
+          empleadosMap[i.DNI] = { dni: i.DNI, nombre: i.APELLIDOS_NOMBRES || "" };
+        }
+      });
+      let empleados = Object.values(empleadosMap);
+
+      // Ordenar Alfabéticamente
+      empleados.sort((a, b) => {
+        return sortMatrizAsc ? a.nombre.localeCompare(b.nombre) : b.nombre.localeCompare(a.nombre);
+      });
+
+      // Paginación de 50 registros por página
+      const totalPaginas = Math.ceil(empleados.length / PAGE_SIZE) || 1;
+      if (pagMatriz < 1) pagMatriz = 1;
+      if (pagMatriz > totalPaginas) pagMatriz = totalPaginas;
+
+      const inicio = (pagMatriz - 1) * PAGE_SIZE;
+      const empleadosPagina = empleados.slice(inicio, inicio + PAGE_SIZE);
+
+      document.getElementById("matrizPagInfo").innerText = `Página ${pagMatriz} de ${totalPaginas} (${empleados.length} Registros Total)`;
+      document.getElementById("btnMatrizPrev").disabled = pagMatriz === 1;
+      document.getElementById("btnMatrizNext").disabled = pagMatriz === totalPaginas;
+
+      // Encabezados con Día, Fecha y Totales por día encima
+      const headerRow = document.getElementById("matrizHeader");
+      headerRow.innerHTML = `
+        <tr>
+          <th class="p-2 border bg-gray-100"></th>
+          <th class="p-2 border bg-gray-100"></th>
+          ${fechas.map(f => `<th class="p-1 border bg-emerald-50 text-center font-bold text-emerald-800 text-[10px]">${personasPorFecha[f] || 0} pers.</th>`).join("")}
+          <th class="p-2 border bg-gray-100"></th>
+          <th class="p-2 border bg-gray-100"></th>
+          <th class="p-2 border bg-gray-100"></th>
+        </tr>
+        <tr>
+          <th class="p-2 border bg-gray-100">DNI</th>
+          <th class="p-2 border bg-gray-100">Apellidos y Nombres</th>
+          ${fechas.map(f => {
+            const info = formatFechaShortConDia(f);
+            return `<th class="p-2 border bg-gray-100 text-center font-mono">
+              <span class="block text-[9px] text-emerald-700 font-bold lowercase">${info.dia}</span>
+              ${info.fecha}
+            </th>`;
+          }).join("")}
+          <th class="p-2 border bg-gray-100 text-center">Tot. Asistió</th>
+          <th class="p-2 border bg-gray-100 text-center">Tot. Faltó</th>
+          <th class="p-2 border bg-gray-100 text-center">Alerta Semanal</th>
+        </tr>
+      `;
+
+      // Filas de Datos
+      const body = document.getElementById("matrizBody");
+      body.innerHTML = empleadosPagina.map(emp => {
+        let totAsistio = 0;
+        let totFalto = 0;
+
+        const celdasFechas = fechas.map(f => {
+          const reg = data.find(d => d.DNI === emp.dni && d.FECHA_INDICE === f);
+          const estado = reg ? reg.ESTADO_MATRIZ || (reg.ALERTA === "ASISTIO" ? "ASISTIO" : "FALTO") : "INACTIVO";
+          
+          if (estado === "ASISTIO") totAsistio++;
+          if (estado === "FALTO") totFalto++;
+
+          let badgeClass = "badge-inactivo";
+          if (estado === "ASISTIO") badgeClass = "badge-asistio";
+          if (estado === "FALTO") badgeClass = "badge-falto";
+          if (estado === "FERIADO") badgeClass = "badge-feriado";
+
+          return `<td class="p-2 border text-center"><span class="px-2 py-0.5 rounded-full text-[10px] font-bold ${badgeClass}">${estado}</span></td>`;
+        }).join("");
+
+        let maxFaltasSemana = Math.max(...data.filter(d => d.DNI === emp.dni).map(d => d.FALTAS_SEMANA || 0), 0);
+        let alertaBadge = '<span class="text-gray-400">-</span>';
+        
+        if (maxFaltasSemana >= 6) {
+          alertaBadge = '<span class="px-2 py-0.5 rounded-full text-[10px] font-bold alert-rojo">ELIMINAR (6 Faltas)</span>';
+        } else if (maxFaltasSemana > 3) {
+          alertaBadge = '<span class="px-2 py-0.5 rounded-full text-[10px] font-bold alert-amarillo">> 3 Faltas</span>';
         }
 
-        function cambiarPaginaMatriz(delta) {
-            currentPageMatriz += delta;
-            actualizarMatriz();
+        return `
+          <tr class="hover:bg-gray-50">
+            <td class="p-2 border font-mono font-medium">${emp.dni}</td>
+            <td class="p-2 border font-medium">${emp.nombre}</td>
+            ${celdasFechas}
+            <td class="p-2 border text-center font-bold text-emerald-700 bg-emerald-50/50">${totAsistio}</td>
+            <td class="p-2 border text-center font-bold text-red-700 bg-red-50/50">${totFalto}</td>
+            <td class="p-2 border text-center">${alertaBadge}</td>
+          </tr>
+        `;
+      }).join("");
+    }
+
+    // --- LÓGICA DE DETALLE COMPLETO DE REGISTROS ---
+    function toggleSortDetalle() {
+      sortDetalleAsc = !sortDetalleAsc;
+      document.getElementById("detalleSortLabel").innerText = sortDetalleAsc ? "A-Z" : "Z-A";
+      renderTabla(filteredData);
+    }
+
+    function cambiarPaginaDetalle(dir) {
+      pagDetalle += dir;
+      renderTabla(filteredData);
+    }
+
+    function renderTabla(data) {
+      let dataOrdenada = [...data];
+
+      dataOrdenada.sort((a, b) => {
+        const nameA = a.APELLIDOS_NOMBRES || "";
+        const nameB = b.APELLIDOS_NOMBRES || "";
+        return sortDetalleAsc ? nameA.localeCompare(nameB) : nameB.localeCompare(nameA);
+      });
+
+      // Paginación de 50 registros por página
+      const totalPaginas = Math.ceil(dataOrdenada.length / PAGE_SIZE) || 1;
+      if (pagDetalle < 1) pagDetalle = 1;
+      if (pagDetalle > totalPaginas) pagDetalle = totalPaginas;
+
+      const inicio = (pagDetalle - 1) * PAGE_SIZE;
+      const dataPagina = dataOrdenada.slice(inicio, inicio + PAGE_SIZE);
+
+      document.getElementById("detallePagInfo").innerText = `Página ${pagDetalle} de ${totalPaginas} (${dataOrdenada.length} Registros Total)`;
+      document.getElementById("btnDetallePrev").disabled = pagDetalle === 1;
+      document.getElementById("btnDetalleNext").disabled = pagDetalle === totalPaginas;
+
+      const tbody = document.getElementById("tablaDetalle");
+      tbody.innerHTML = dataPagina.map(item => {
+        const faltasSem = item.FALTAS_SEMANA || 0;
+        const faltasCons = item.FALTAS_CONSECUTIVAS || 0;
+        let alertaFaltasBadge = '<span class="text-gray-400">-</span>';
+
+        if (faltasSem >= 6 || faltasCons >= 6) {
+          alertaFaltasBadge = '<span class="px-2 py-0.5 rounded-full text-[10px] font-bold alert-rojo">6 Faltas Consecutivas / Eliminar</span>';
+        } else if (faltasSem > 3 || faltasCons > 3) {
+          alertaFaltasBadge = '<span class="px-2 py-0.5 rounded-full text-[10px] font-bold alert-amarillo">> 3 Faltas</span>';
         }
 
-        // 4. DETALLE COMPLETO CON PAGINACIÓN DE 50
-        function actualizarTablaDetalle() {
-            const tbody = document.getElementById('tbodyDetalle');
-            tbody.innerHTML = '';
+        return `
+          <tr class="hover:bg-gray-50">
+            <td class="p-2 border font-mono">${item.DNI || ''}</td>
+            <td class="p-2 border font-medium">${item.APELLIDOS_NOMBRES || ''}</td>
+            <td class="p-2 border text-center">${alertaFaltasBadge}</td>
+            <td class="p-2 border text-center">${item.SEMANA || ''}</td>
+            <td class="p-2 border text-center">${item.MES || ''}</td>
+            <td class="p-2 border text-center">${item.DIA || ''}</td>
+            <td class="p-2 border text-center font-mono">${formatFechaShort(item.FECHA_INDICE)}</td>
+            <td class="p-2 border text-center">
+              <span class="px-2 py-0.5 rounded-md text-[10px] font-bold ${item.ALERTA === 'ASISTIO' ? 'bg-emerald-100 text-emerald-800' : 'bg-red-100 text-red-800'}">
+                ${item.ALERTA || ''}
+              </span>
+            </td>
+            <td class="p-2 border">${item.ESTADO_ASISTENCIA || ''}</td>
+            <td class="p-2 border">${item.HISTORICO || ''}</td>
+            <td class="p-2 border">${item.MODALIDAD || ''}</td>
+            <td class="p-2 border font-mono">${item.PLACA || ''}</td>
+            <td class="p-2 border">${item.RUTA || ''}</td>
+            <td class="p-2 border text-center">${item.SEXO || ''}</td>
+          </tr>
+        `;
+      }).join("");
+    }
 
-            const totalRecords = filteredRecords.length;
-            const totalPages = Math.ceil(totalRecords / PAGE_SIZE) || 1;
-            if (currentPageDetalle > totalPages) currentPageDetalle = totalPages;
+    // Exportar a Excel
+    function exportarExcel() {
+      if (!filteredData || filteredData.length === 0) {
+        alert("No hay registros para exportar.");
+        return;
+      }
 
-            const startIndex = (currentPageDetalle - 1) * PAGE_SIZE;
-            const endIndex = Math.min(startIndex + PAGE_SIZE, totalRecords);
-            const pagedRecords = filteredRecords.slice(startIndex, endIndex);
+      const dataToExport = filteredData.map(item => ({
+        "DNI": item.DNI,
+        "Apellidos y Nombres": item.APELLIDOS_NOMBRES,
+        "Semana": item.SEMANA,
+        "Mes": item.MES,
+        "Día": item.DIA,
+        "Fecha Índice": formatFechaShort(item.FECHA_INDICE),
+        "Alerta": item.ALERTA,
+        "Estado Asistencia": item.ESTADO_ASISTENCIA,
+        "Histórico": item.HISTORICO,
+        "Modalidad": item.MODALIDAD,
+        "Placa": item.PLACA,
+        "Ruta": item.RUTA,
+        "Sexo": item.SEXO,
+        "Faltas Semanales": item.FALTAS_SEMANA || 0
+      }));
 
-            pagedRecords.forEach(r => {
-                const tr = document.createElement('tr');
-                tr.innerHTML = `
-                    <td>${r.fecha}</td>
-                    <td>${r.semana || ''}</td>
-                    <td>${r.dni}</td>
-                    <td style="text-align:left;">${r.nombre}</td>
-                    <td>${r.sexo || ''}</td>
-                    <td>${r.modalidad || ''}</td>
-                    <td>${r.fechaContrato || ''}</td>
-                    <td><span class="badge-status ${normalizeStr(r.alerta) === 'ASISTIO' ? 'badge-asistio' : 'badge-falto'}">${r.alerta}</span></td>
-                    <td>${r.estadoAsistencia}</td>
-                `;
-                tbody.appendChild(tr);
-            });
+      const worksheet = XLSX.utils.json_to_sheet(dataToExport);
+      const workbook = XLSX.utils.book_new();
+      XLSX.utils.book_append_sheet(workbook, worksheet, "Reporte_Asistencia");
 
-            document.getElementById('infoPaginacionDetalle').textContent = 
-                `Mostrando ${totalRecords > 0 ? startIndex + 1 : 0} - ${endIndex} de ${totalRecords} registros`;
-            document.getElementById('labelPaginaDetalle').textContent = `Página ${currentPageDetalle} de ${totalPages}`;
-            document.getElementById('btnDetallePrev').disabled = (currentPageDetalle === 1);
-            document.getElementById('btnDetalleNext').disabled = (currentPageDetalle >= totalPages);
-        }
-
-        function cambiarPaginaDetalle(delta) {
-            currentPageDetalle += delta;
-            actualizarTablaDetalle();
-        }
-
-        // 5. GRÁFICO: DISTRIBUCIÓN HISTÓRICA CON ETIQUETAS SOBRE BARRAS
-        function actualizarGraficoDistribucion() {
-            const counts = { "ASISTIO": 0, "FALTO": 0, "FERIADO": 0, "INACTIVO": 0 };
-
-            const dates = [...new Set(filteredRecords.map(r => r.fecha))];
-            const workerMap = new Map();
-            filteredRecords.forEach(r => {
-                if (!workerMap.has(r.dni)) {
-                    workerMap.set(r.dni, { dni: r.dni, fechaContrato: r.fechaContrato });
-                }
-            });
-
-            workerMap.forEach(worker => {
-                dates.forEach(d => {
-                    const status = calcularEstadoMatriz(worker, d);
-                    if (counts[status.badgeText] !== undefined) counts[status.badgeText]++;
-                });
-            });
-
-            const labels = ["ASISTIO", "FALTO", "FERIADO", "INACTIVO"];
-            const dataVals = [counts["ASISTIO"], counts["FALTO"], counts["FERIADO"], counts["INACTIVO"]];
-            const colors = ["#2e7d32", "#c62828", "#f57c00", "#757575"];
-
-            const ctx = document.getElementById('chartDistribucion').getContext('2d');
-
-            if (chartDistribucionInst) chartDistribucionInst.destroy();
-
-            chartDistribucionInst = new Chart(ctx, {
-                type: 'bar',
-                data: {
-                    labels: labels,
-                    datasets: [{
-                        label: 'Total Registros',
-                        data: dataVals,
-                        backgroundColor: colors,
-                        borderRadius: 4
-                    }]
-                },
-                options: {
-                    indexAxis: 'y',
-                    responsive: true,
-                    maintainAspectRatio: false,
-                    plugins: {
-                        legend: { display: false },
-                        datalabels: {
-                            anchor: 'end',
-                            align: 'end',
-                            color: '#333',
-                            font: { weight: 'bold', size: 12 },
-                            formatter: function(value) { return value; }
-                        }
-                    },
-                    scales: {
-                        x: { beginAtZero: true, grid: { display: false } },
-                        y: { grid: { display: false } }
-                    }
-                }
-            });
-        }
-
-        // 6. GRÁFICO: MODALIDAD CONTRATACIÓN CON TOTALES
-        function actualizarGraficoModalidad() {
-            const modalidadCounts = {};
-
-            const workerMap = new Map();
-            filteredRecords.forEach(r => {
-                if (!workerMap.has(r.dni)) {
-                    workerMap.set(r.dni, r.modalidad || 'SIN MODALIDAD');
-                }
-            });
-
-            workerMap.forEach((mod) => {
-                modalidadCounts[mod] = (modalidadCounts[mod] || 0) + 1;
-            });
-
-            const labels = Object.keys(modalidadCounts);
-            const dataVals = Object.values(modalidadCounts);
-
-            const ctx = document.getElementById('chartModalidad').getContext('2d');
-
-            if (chartModalidadInst) chartModalidadInst.destroy();
-
-            chartModalidadInst = new Chart(ctx, {
-                type: 'doughnut',
-                data: {
-                    labels: labels,
-                    datasets: [{
-                        data: dataVals,
-                        backgroundColor: ['#1a436e', '#008080', '#e65100', '#6a1b9a', '#43a047']
-                    }]
-                },
-                options: {
-                    responsive: true,
-                    maintainAspectRatio: false,
-                    plugins: {
-                        legend: { position: 'bottom' },
-                        datalabels: {
-                            color: '#fff',
-                            font: { weight: 'bold', size: 12 },
-                            formatter: function(value, context) {
-                                const label = context.chart.data.labels[context.dataIndex];
-                                return `${label}\n${value}`;
-                            }
-                        }
-                    }
-                }
-            });
-        }
-    </script>
+      const hoy = new Date().toISOString().split('T')[0];
+      XLSX.writeFile(workbook, `Reporte_Huarmey_${hoy}.xlsx`);
+    }
+  </script>
 </body>
 </html>

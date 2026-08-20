@@ -144,8 +144,8 @@
         <!-- Filtro por Umbral de Faltas -->
         <select id="filterFaltasUmbral" onchange="aplicarFiltros()" class="p-2 border rounded-lg text-sm w-full bg-red-50 text-red-900 border-red-200 font-medium">
           <option value="">Todas las Faltas (Sin Filtro)</option>
-          <option value="3">Mayor igual a 3 Faltas (>= 3)</option>
-          <option value="6">Mayor igual a 6 Faltas (Dar de baja)</option>
+          <option value="3">Mayor a 3 Faltas (> 3)</option>
+          <option value="6">Mayor a 6 Faltas (Dar de baja)</option>
         </select>
       </div>
 
@@ -268,7 +268,6 @@
         navigator.serviceWorker.register('service-worker.js');
       }
 
-      // Cerrar dropdown si se hace clic fuera
       document.addEventListener("click", (e) => {
         const drop = document.getElementById("dropdownAlertas");
         if (drop && !e.target.closest("#dropdownAlertas") && !e.target.closest("button[onclick='toggleDropdownAlertas()']")) {
@@ -408,21 +407,27 @@
       renderTabla(filteredData);
     }
 
+    // CONTEO Y METRICAS CORREGIDAS
     function renderKpis(data) {
       let asistencias = 0, faltas = 0, faltaMarc = 0, faltaTareo = 0, faltaAmbos = 0;
 
       data.forEach(item => {
-        if (item.ALERTA === "ASISTIO") asistencias++;
-        if (item.ALERTA === "FALTO") faltas++;
+        const alertaStr = (item.ALERTA || "").toString().trim().toUpperCase();
+        if (alertaStr === "ASISTIO") asistencias++;
+        if (alertaStr === "FALTO") faltas++;
         
-        // Conteo basado en la columna ESTADO ASISTENCIA
-        const est = (item.ESTADO_ASISTENCIA || "").toString().trim().toUpperCase();
+        // Obtención de la propiedad adaptando posibles nombres de clave
+        const estadoRaw = item.ESTADO_ASISTENCIA || item["ESTADO ASISTENCIA"] || item.ESTADO_MATRIZ || "";
+        const est = estadoRaw.toString().trim().toUpperCase();
 
-        if (est.includes("FALTA MARCACION") && est.includes("FALTA TAREO")) {
+        const tieneTareo = est.includes("TAREO");
+        const tieneMarcacion = est.includes("MARCACION") || est.includes("MARCACIÓN");
+
+        if (tieneTareo && tieneMarcacion) {
           faltaAmbos++;
-        } else if (est === "FALTA MARCACION") {
+        } else if (tieneMarcacion) {
           faltaMarc++;
-        } else if (est === "FALTA TAREO") {
+        } else if (tieneTareo) {
           faltaTareo++;
         }
       });
@@ -515,13 +520,6 @@
       aplicarFiltros();
     }
 
-    function contarFaltasTotales(dataEmp) {
-      return dataEmp.reduce((acc, curr) => {
-        const est = (curr.ESTADO_MATRIZ || curr.ALERTA || "").toString().trim().toUpperCase();
-        return est === "FALTO" ? acc + 1 : acc;
-      }, 0);
-    }
-
     function aplicarFiltros() {
       const busqueda = document.getElementById("filterBusqueda").value.toLowerCase();
       const semana = document.getElementById("filterSemana").value;
@@ -530,7 +528,6 @@
       const estAsist = document.getElementById("filterEstadoAsistencia").value;
       const faltasUmbral = document.getElementById("filterFaltasUmbral").value;
 
-      // Mapeo pre-calculado de faltas acumuladas por DNI sobre toda la BD
       const faltasMap = {};
       dbData.forEach(d => {
         const est = (d.ESTADO_MATRIZ || d.ALERTA || "").toString().trim().toUpperCase();
@@ -545,15 +542,16 @@
         const matchMes = !mes || item.MES == mes;
         const matchFecha = !fecha || item.FECHA_INDICE == fecha;
         const matchAlerta = selectedAlertas.length === 0 || selectedAlertas.includes(item.ALERTA);
-        const matchEstado = !estAsist || (item.ESTADO_ASISTENCIA || "").includes(estAsist);
 
-        // Filtros de Umbral de Faltas (>=3 o >=6)
+        const estadoRaw = item.ESTADO_ASISTENCIA || item["ESTADO ASISTENCIA"] || "";
+        const matchEstado = !estAsist || estadoRaw.toString().toUpperCase().includes(estAsist);
+
         let matchUmbral = true;
         const totalFaltasEmp = faltasMap[item.DNI] || 0;
         if (faltasUmbral === "3") {
-          matchUmbral = totalFaltasEmp >= 3;
+          matchUmbral = totalFaltasEmp > 3;
         } else if (faltasUmbral === "6") {
-          matchUmbral = totalFaltasEmp >= 6;
+          matchUmbral = totalFaltasEmp > 6;
         }
 
         return matchBusqueda && matchSemana && matchMes && matchFecha && matchAlerta && matchEstado && matchUmbral;
@@ -582,27 +580,25 @@
       procesarYRenderizar(dbData);
     }
 
+    // LÓGICA DE ALERTA SEMANAL SOLICITADA
     function obtenerAlertaEmpleado(dataEmpleado) {
       let totalFaltas = 0;
-      let faltasLunSab = 0;
 
       dataEmpleado.forEach(d => {
         const estado = (d.ESTADO_MATRIZ || d.ALERTA || "").toString().trim().toUpperCase();
         if (estado === "FALTO") {
           totalFaltas++;
-          const info = formatFechaShortConDia(d.FECHA_INDICE);
-          if (info.numDia >= 1 && info.numDia <= 6) {
-            faltasLunSab++;
-          }
         }
       });
 
-      if (faltasLunSab >= 6 || totalFaltas >= 6) {
+      if (totalFaltas > 6) {
         return '<span class="px-2 py-0.5 rounded-full text-[10px] font-bold alert-rojo">DAR DE BAJA</span>';
-      } else if (totalFaltas >= 3) {
-        return '<span class="px-2 py-0.5 rounded-full text-[10px] font-bold alert-amarillo">>= 3 FALTAS</span>';
+      } else if (totalFaltas > 3) {
+        return `<span class="px-2 py-0.5 rounded-full text-[10px] font-bold alert-amarillo">${totalFaltas} FALTAS</span>`;
       }
-      return '<span class="text-gray-400">-</span>';
+      
+      // Si tiene 3 o menos faltas, se muestra totalmente en blanco
+      return '';
     }
 
     function toggleSortMatriz() {
@@ -756,6 +752,7 @@
       tbody.innerHTML = dataPagina.map(item => {
         const dataEmp = dbData.filter(d => d.DNI === item.DNI);
         const alertaFaltasBadge = obtenerAlertaEmpleado(dataEmp);
+        const estadoAsistencia = item.ESTADO_ASISTENCIA || item["ESTADO ASISTENCIA"] || '';
 
         return `
           <tr class="hover:bg-gray-50">
@@ -771,7 +768,7 @@
                 ${item.ALERTA || ''}
               </span>
             </td>
-            <td class="p-2 border">${item.ESTADO_ASISTENCIA || ''}</td>
+            <td class="p-2 border">${estadoAsistencia}</td>
             <td class="p-2 border">${item.HISTORICO || ''}</td>
             <td class="p-2 border">${item.MODALIDAD || ''}</td>
             <td class="p-2 border font-mono">${item.PLACA || ''}</td>
@@ -796,7 +793,7 @@
         "Día": item.DIA,
         "Fecha Índice": formatFechaShort(item.FECHA_INDICE),
         "Alerta": item.ALERTA,
-        "Estado Asistencia": item.ESTADO_ASISTENCIA,
+        "Estado Asistencia": item.ESTADO_ASISTENCIA || item["ESTADO ASISTENCIA"],
         "Histórico": item.HISTORICO,
         "Modalidad": item.MODALIDAD,
         "Placa": item.PLACA,

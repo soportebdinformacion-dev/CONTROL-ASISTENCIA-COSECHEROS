@@ -7,10 +7,11 @@
   <link rel="manifest" href="manifest.json">
   <meta name="theme-color" content="#d32f2f">
   
-  <!-- Tailwind CSS & Lucide Icons -->
+  <!-- Tailwind CSS, Lucide Icons, Chart.js & SheetJS (Excel) -->
   <script src="https://cdn.tailwindcss.com"></script>
   <script src="https://unpkg.com/lucide@latest"></script>
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
 
   <style>
     :root {
@@ -31,7 +32,7 @@
   <header class="bg-white shadow-md sticky top-0 z-50">
     <div class="max-w-7xl mx-auto px-4 py-3 flex justify-between items-center">
       <div class="flex items-center space-x-3">
-        <!-- SVG / Logo Agrícola Huarmey incorporado en tonos rojo y verde -->
+        <!-- Logo SVG -->
         <svg class="h-10 w-10" viewBox="0 0 100 100">
           <circle cx="50" cy="50" r="45" fill="none" stroke="#2e7d32" stroke-width="4"/>
           <path d="M 30 65 C 30 35, 70 35, 70 65 C 60 75, 40 75, 30 65 Z" fill="#d32f2f"/>
@@ -42,9 +43,15 @@
           <span class="text-xs text-emerald-700 font-semibold">Gestión de Asistencia</span>
         </div>
       </div>
-      <div class="flex items-center gap-2">
-        <button id="btnSync" onclick="sincronizarDatos()" class="flex items-center gap-1 bg-emerald-600 hover:bg-emerald-700 text-white text-xs px-3 py-2 rounded-lg font-medium shadow-sm transition">
-          <i data-lucide="refresh-cw" class="w-4 h-4"></i> Sincronizar
+      
+      <!-- Estado de Conexión & Botón Sync -->
+      <div class="flex items-center gap-3">
+        <div id="connectionStatus" class="flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold bg-gray-100 text-gray-600 transition-all duration-300">
+          <span class="w-2 h-2 rounded-full bg-gray-400" id="statusDot"></span>
+          <span id="statusText">Verificando...</span>
+        </div>
+        <button id="btnSync" onclick="sincronizarDatos(true)" class="flex items-center gap-1 bg-emerald-600 hover:bg-emerald-700 text-white text-xs px-3 py-2 rounded-lg font-medium shadow-sm transition">
+          <i data-lucide="refresh-cw" class="w-4 h-4" id="syncIcon"></i> Sincronizar
         </button>
       </div>
     </div>
@@ -123,7 +130,14 @@
 
     <!-- Panel de Filtros -->
     <div class="bg-white p-4 rounded-xl shadow-sm border border-gray-100 space-y-3">
-      <span class="text-xs font-bold text-gray-500 uppercase tracking-wider block">Filtros de Búsqueda</span>
+      <div class="flex justify-between items-center">
+        <span class="text-xs font-bold text-gray-500 uppercase tracking-wider block">Filtros de Búsqueda</span>
+        <!-- Botón Exportar Excel -->
+        <button onclick="exportarExcel()" class="flex items-center gap-1.5 bg-emerald-700 hover:bg-emerald-800 text-white text-xs px-3 py-1.5 rounded-lg font-medium shadow-sm transition">
+          <i data-lucide="file-spreadsheet" class="w-4 h-4"></i> Exportar a Excel
+        </button>
+      </div>
+
       <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-2">
         <input type="text" id="filterBusqueda" oninput="aplicarFiltros()" placeholder="DNI o Nombres..." class="p-2 border rounded-lg text-sm w-full">
         <select id="filterSemana" onchange="aplicarFiltros()" class="p-2 border rounded-lg text-sm w-full"><option value="">Todas las Semanas</option></select>
@@ -141,7 +155,8 @@
           <option value="FALTA TAREO Y FALTA MARCACION">FALTA TAREO Y MARCACION</option>
         </select>
       </div>
-      <div class="flex items-center gap-2 pt-2 border-t border-gray-100">
+
+      <div class="flex items-center gap-2 pt-2 border-t border-gray-100 flex-wrap">
         <span class="text-xs font-semibold text-gray-600">Inasistencias Acumuladas:</span>
         <button onclick="filtrarFaltasSemana(3)" class="text-xs bg-amber-100 text-amber-800 font-medium px-2.5 py-1 rounded-md hover:bg-amber-200"> > 3 Faltas/Semana</button>
         <button onclick="filtrarFaltasSemana(6)" class="text-xs bg-red-100 text-red-800 font-medium px-2.5 py-1 rounded-md hover:bg-red-200">6 Faltas/Semana (Eliminar)</button>
@@ -202,25 +217,28 @@
   </main>
 
   <script>
-    const GAS_URL = "https://script.google.com/macros/s/AKfycbx2lmEsTIg3Y-iiNeCYjlAceM9BRFYdkLV0FDHpaFz-ZHsWNEAvE1PDSGLPMg9NBMdb/exec";
+    const GAS_URL = "https://script.google.com/macros/s/AKfycbw1FQXuRaK9Eb9ZdzJghT7vkoQbKFYckwHzQ5ZmAnUDfYQgu9qvwBJsLtQ6VdGn0qAY/exec";
     let dbData = [];
     let filteredData = [];
     let charts = {};
 
-    // Inicialización de la App
-    document.addEventListener("DOMContentLoaded", () => {
+    // Inicialización Instantánea
+    document.addEventListener("DOMContentLoaded", async () => {
       lucide.createIcons();
-      initDB().then(() => {
-        cargarDatosLocal();
-        sincronizarDatos();
-      });
+      await initDB();
+      
+      // 1. Cargar cache local inmediatamente (instantáneo)
+      await cargarDatosLocal();
+      
+      // 2. Sincronizar en segundo plano
+      sincronizarDatos();
       
       if ('serviceWorker' in navigator) {
         navigator.serviceWorker.register('service-worker.js');
       }
     });
 
-    // Configuración IndexedDB Offline
+    // IndexedDB Offline
     function initDB() {
       return new Promise((resolve, reject) => {
         const request = indexedDB.open("AgricolaHuarmeyDB", 1);
@@ -248,30 +266,68 @@
       const tx = db.transaction("asistencia", "readonly");
       const store = tx.objectStore("asistencia");
       const req = store.getAll();
-      req.onsuccess = () => {
-        if(req.result.length > 0) {
-          dbData = req.result;
-          procesarYRenderizar(dbData);
-        }
-      };
+      return new Promise((resolve) => {
+        req.onsuccess = () => {
+          if (req.result.length > 0) {
+            dbData = req.result;
+            procesarYRenderizar(dbData);
+          }
+          resolve();
+        };
+      });
     }
 
-    // Sincronización con Backend Apps Script
-    async function sincronizarDatos() {
-      try {
-        const res = await fetch(GAS_URL);
-        const json = await res.json();
-        if(json.status === "success") {
-          dbData = json.data;
-          await guardarLocal(dbData);
-          procesarYRenderizar(dbData);
-        }
-      } catch (err) {
-        console.warn("Modo Offline activo o error de conexión:", err);
+    // Actualizador de la Alerta de Conexión a Google Sheets
+    function setConnectionStatus(status, message) {
+      const box = document.getElementById("connectionStatus");
+      const dot = document.getElementById("statusDot");
+      const txt = document.getElementById("statusText");
+
+      if (status === "connecting") {
+        box.className = "flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold bg-amber-50 text-amber-700 border border-amber-200";
+        dot.className = "w-2 h-2 rounded-full bg-amber-500 animate-pulse";
+        txt.innerText = message || "Conectando a Google Sheets...";
+      } else if (status === "online") {
+        box.className = "flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold bg-emerald-50 text-emerald-700 border border-emerald-200";
+        dot.className = "w-2 h-2 rounded-full bg-emerald-500";
+        txt.innerText = message || "Conectado a Google Sheets";
+      } else if (status === "offline") {
+        box.className = "flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold bg-red-50 text-red-700 border border-red-200";
+        dot.className = "w-2 h-2 rounded-full bg-red-500";
+        txt.innerText = message || "Sin Conexión (Modo Offline)";
       }
     }
 
-    // Procesamiento y Renderizado de UI
+    // Sincronización
+    async function sincronizarDatos(manual = false) {
+      setConnectionStatus("connecting", "Sincronizando...");
+      const icon = document.getElementById("syncIcon");
+      if(icon) icon.classList.add("animate-spin");
+
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 8000); // 8 segs timeout
+
+      try {
+        const res = await fetch(GAS_URL, { signal: controller.signal });
+        clearTimeout(timeoutId);
+        const json = await res.json();
+        
+        if (json.status === "success") {
+          dbData = json.data;
+          await guardarLocal(dbData);
+          procesarYRenderizar(dbData);
+          setConnectionStatus("online", "Conectado a Google Sheets");
+        } else {
+          setConnectionStatus("offline", "Error en Sheets");
+        }
+      } catch (err) {
+        setConnectionStatus("offline", dbData.length > 0 ? "Modo Offline Activo" : "Sin Conexión");
+      } finally {
+        if(icon) icon.classList.remove("animate-spin");
+      }
+    }
+
+    // Renderizado
     function procesarYRenderizar(data) {
       filteredData = [...data];
       poblarFiltros(data);
@@ -283,7 +339,6 @@
 
     function renderKpis(data) {
       let asistencias = 0, faltas = 0, faltaMarc = 0, faltaTareo = 0, faltaAmbos = 0;
-      
       data.forEach(item => {
         if (item.ALERTA === "ASISTIO") asistencias++;
         if (item.ALERTA === "FALTO") faltas++;
@@ -331,8 +386,8 @@
     }
 
     function poblarFiltros(data) {
-      const semanas = [...new Set(data.map(i => i.SEMANA))].sort();
-      const meses = [...new Set(data.map(i => i.MES))].sort();
+      const semanas = [...new Set(data.map(i => i.SEMANA))].filter(Boolean).sort();
+      const meses = [...new Set(data.map(i => i.MES))].filter(Boolean).sort();
       
       const selSemana = document.getElementById("filterSemana");
       const selMes = document.getElementById("filterMes");
@@ -397,9 +452,41 @@
       procesarYRenderizar(dbData);
     }
 
+    // Exportación a Excel con la data actualmente filtrada
+    function exportarExcel() {
+      if (!filteredData || filteredData.length === 0) {
+        alert("No hay información filtrada para exportar.");
+        return;
+      }
+
+      const dataToExport = filteredData.map(item => ({
+        "DNI": item.DNI,
+        "Apellidos y Nombres": item.APELLIDOS_NOMBRES,
+        "Semana": item.SEMANA,
+        "Mes": item.MES,
+        "Día": item.DIA,
+        "Fecha Índice": item.FECHA_INDICE,
+        "Alerta": item.ALERTA,
+        "Estado Asistencia": item.ESTADO_ASISTENCIA,
+        "Histórico": item.HISTORICO,
+        "Modalidad": item.MODALIDAD,
+        "Placa": item.PLACA,
+        "Ruta": item.RUTA,
+        "Sexo": item.SEXO,
+        "Faltas Acumuladas Semana": item.FALTAS_SEMANA || 0
+      }));
+
+      const worksheet = XLSX.utils.json_to_sheet(dataToExport);
+      const workbook = XLSX.utils.book_new();
+      XLSX.utils.book_append_sheet(workbook, worksheet, "Reporte_Filtrado");
+
+      const fechaHoy = new Date().toISOString().split('T')[0];
+      XLSX.writeFile(workbook, `Reporte_Asistencia_Huarmey_${fechaHoy}.xlsx`);
+    }
+
     // Render Matrix FECHA_INDICE
     function renderMatriz(data) {
-      const fechas = [...new Set(data.map(i => i.FECHA_INDICE))].sort();
+      const fechas = [...new Set(data.map(i => i.FECHA_INDICE))].filter(Boolean).sort();
       const empleados = [...new Set(data.map(i => JSON.stringify({ dni: i.DNI, nombre: i.APELLIDOS_NOMBRES })))].map(i => JSON.parse(i));
 
       const headerRow = document.getElementById("matrizHeader");

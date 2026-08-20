@@ -1,4 +1,4 @@
-<!DOCTYPE html><!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="es">
 <head>
   <meta charset="UTF-8">
@@ -138,8 +138,8 @@
 
         <select id="filterFaltasUmbral" onchange="aplicarFiltros()" class="p-2 border rounded-lg text-sm w-full bg-orange-50 text-orange-900 border-orange-200 font-medium">
           <option value="">Todas las Faltas (Sin Filtro)</option>
-          <option value="3">Más de 3 Faltas (> 3 FALTAS)</option>
-          <option value="6">Más de 6 Faltas (DAR DE BAJA)</option>
+          <option value="3">Mayor o igual a 3 Faltas (>= 3 FALTAS)</option>
+          <option value="6">Mayor o igual a 6 Faltas (DAR DE BAJA)</option>
         </select>
       </div>
 
@@ -512,16 +512,8 @@
       const estAsist = document.getElementById("filterEstadoAsistencia").value;
       const faltasUmbral = document.getElementById("filterFaltasUmbral").value;
 
-      // Conteo de faltas exclusivas (FALTO) por DNI
-      const faltasMap = {};
-      dbData.forEach(d => {
-        const est = (d.ESTADO_MATRIZ || d.ALERTA || "").toString().trim().toUpperCase();
-        if (est === "FALTO") {
-          faltasMap[d.DNI] = (faltasMap[d.DNI] || 0) + 1;
-        }
-      });
-
-      filteredData = dbData.filter(item => {
+      // Se obtienen los datos filtrados preliminarmente
+      let tempFiltered = dbData.filter(item => {
         const matchBusqueda = (item.DNI || "").toString().toLowerCase().includes(busqueda) || (item.APELLIDOS_NOMBRES || "").toLowerCase().includes(busqueda);
         const matchSemana = !semana || item.SEMANA == semana;
         const matchMes = !mes || item.MES == mes;
@@ -531,15 +523,27 @@
         const estadoRaw = item.ESTADO_ASISTENCIA || item["ESTADO ASISTENCIA"] || "";
         const matchEstado = !estAsist || estadoRaw.toString().toUpperCase().includes(estAsist);
 
+        return matchBusqueda && matchSemana && matchMes && matchFecha && matchAlerta && matchEstado;
+      });
+
+      // Conteo exclusivo de FALTO dentro del contexto activo
+      const faltasMap = {};
+      tempFiltered.forEach(d => {
+        const est = (d.ESTADO_MATRIZ || d.ALERTA || "").toString().trim().toUpperCase();
+        if (est === "FALTO") {
+          faltasMap[d.DNI] = (faltasMap[d.DNI] || 0) + 1;
+        }
+      });
+
+      filteredData = tempFiltered.filter(item => {
         let matchUmbral = true;
         const totalFaltasEmp = faltasMap[item.DNI] || 0;
         if (faltasUmbral === "3") {
-          matchUmbral = totalFaltasEmp > 3;
+          matchUmbral = totalFaltasEmp >= 3;
         } else if (faltasUmbral === "6") {
-          matchUmbral = totalFaltasEmp > 6;
+          matchUmbral = totalFaltasEmp >= 6;
         }
-
-        return matchBusqueda && matchSemana && matchMes && matchFecha && matchAlerta && matchEstado && matchUmbral;
+        return matchUmbral;
       });
 
       renderKpis(filteredData);
@@ -565,20 +569,23 @@
       procesarYRenderizar(dbData);
     }
 
-    // CONTEO EXCLUSIVO DE "FALTO" Y NUEVAS CONDICIONES (>3 NARANJA, >6 ROJO)
-    function obtenerAlertaEmpleado(dataEmpleado) {
+    // EVALUACIÓN DE REGLAS BASADA SOLAMENTE EN REGISTROS CON ESTADO "FALTO"
+    function obtenerAlertaEmpleado(dniEmpleado, datasetContext) {
+      const source = datasetContext || filteredData;
       let totalFaltas = 0;
 
-      dataEmpleado.forEach(d => {
-        const estado = (d.ESTADO_MATRIZ || d.ALERTA || "").toString().trim().toUpperCase();
-        if (estado === "FALTO") {
-          totalFaltas++;
+      source.forEach(d => {
+        if (d.DNI === dniEmpleado) {
+          const estado = (d.ESTADO_MATRIZ || d.ALERTA || "").toString().trim().toUpperCase();
+          if (estado === "FALTO") {
+            totalFaltas++;
+          }
         }
       });
 
-      if (totalFaltas > 6) {
+      if (totalFaltas >= 6) {
         return '<span class="px-2 py-0.5 rounded-full text-[10px] font-bold alert-rojo uppercase">DAR DE BAJA</span>';
-      } else if (totalFaltas > 3) {
+      } else if (totalFaltas >= 3) {
         return '<span class="px-2 py-0.5 rounded-full text-[10px] font-bold alert-naranja uppercase">> = 3 FALTAS</span>';
       }
       
@@ -662,10 +669,9 @@
       body.innerHTML = empleadosPagina.map(emp => {
         let totAsistio = 0;
         let totFalto = 0;
-        const dataEmp = dbData.filter(d => d.DNI === emp.dni);
 
         const celdasFechas = fechas.map(f => {
-          const reg = dataEmp.find(d => d.FECHA_INDICE === f);
+          const reg = data.find(d => d.DNI === emp.dni && d.FECHA_INDICE === f);
           
           let estado = "INACTIVO";
           if (reg) {
@@ -686,7 +692,7 @@
           return `<td class="p-2 border text-center"><span class="px-2 py-0.5 rounded-full text-[10px] font-bold ${badgeClass}">${estado}</span></td>`;
         }).join("");
 
-        const alertaBadge = obtenerAlertaEmpleado(dataEmp);
+        const alertaBadge = obtenerAlertaEmpleado(emp.dni, data);
 
         return `
           <tr class="hover:bg-gray-50">
@@ -734,8 +740,7 @@
 
       const tbody = document.getElementById("tablaDetalle");
       tbody.innerHTML = dataPagina.map(item => {
-        const dataEmp = dbData.filter(d => d.DNI === item.DNI);
-        const alertaFaltasBadge = obtenerAlertaEmpleado(dataEmp);
+        const alertaFaltasBadge = obtenerAlertaEmpleado(item.DNI, data);
         const estadoAsistencia = item.ESTADO_ASISTENCIA || item["ESTADO ASISTENCIA"] || '';
 
         return `

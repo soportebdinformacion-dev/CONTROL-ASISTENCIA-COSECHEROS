@@ -192,18 +192,18 @@
             <tr>
               <th class="p-2 border">DNI</th>
               <th class="p-2 border">Apellidos y Nombres</th>
-              <th class="p-2 border">Alerta Faltas</th>
-              <th class="p-2 border">Sem.</th>
-              <th class="p-2 border">Mes</th>
-              <th class="p-2 border">Día</th>
-              <th class="p-2 border">Fecha Índice</th>
-              <th class="p-2 border">Alerta</th>
+              <th class="p-2 border text-center">Alerta Faltas</th>
+              <th class="p-2 border text-center">Sem.</th>
+              <th class="p-2 border text-center">Mes</th>
+              <th class="p-2 border text-center">Día</th>
+              <th class="p-2 border text-center">Fecha Índice</th>
+              <th class="p-2 border text-center">Alerta</th>
               <th class="p-2 border">Estado Asistencia</th>
               <th class="p-2 border">Histórico</th>
               <th class="p-2 border">Modalidad</th>
-              <th class="p-2 border">Placa</th>
+              <th class="p-2 border font-mono">Placa</th>
               <th class="p-2 border">Ruta</th>
-              <th class="p-2 border">Sexo</th>
+              <th class="p-2 border text-center">Sexo</th>
             </tr>
           </thead>
           <tbody id="tablaDetalle" class="divide-y divide-gray-100">
@@ -225,19 +225,16 @@
   </main>
 
   <script>
-    // Registrar Plugin DataLabels de Chart.js
     if (window.ChartDataLabels) {
       Chart.register(ChartDataLabels);
     }
 
-    // Link Directo de Google Apps Script
     const gasUrl = "https://script.google.com/macros/s/AKfycbwBM7oIzoPih-jFPRV9KjLgiGyijEgl-giJsxCvajRlgGrDpLiEjrOn3WCzOOCKINIC/exec";
     
     let dbData = [];
     let filteredData = [];
     let charts = {};
 
-    // Paginación ajustada a 50 por página
     const PAGE_SIZE = 50;
     let pagMatriz = 1;
     let sortMatrizAsc = true;
@@ -256,9 +253,8 @@
       }
     });
 
-    // Formateador de Fecha con Día: YYYY-MM-DD -> lun. 20/08/26
     function formatFechaShortConDia(fechaStr) {
-      if (!fechaStr) return "";
+      if (!fechaStr) return { dia: "", fecha: "" };
       const clean = fechaStr.toString().split("T")[0];
       const parts = clean.split("-");
 
@@ -274,10 +270,11 @@
         const yy = parts[0].slice(-2);
         return {
           dia: nombreDia,
-          fecha: `${parts[2]}/${parts[1]}/${yy}`
+          fecha: `${parts[2]}/${parts[1]}/${yy}`,
+          numDia: fechaObj.getDay()
         };
       }
-      return { dia: "", fecha: fechaStr };
+      return { dia: "", fecha: fechaStr, numDia: -1 };
     }
 
     function formatFechaShort(fechaStr) {
@@ -285,7 +282,6 @@
       return res.fecha;
     }
 
-    // Configuración IndexedDB
     function initDB() {
       return new Promise((resolve, reject) => {
         const request = indexedDB.open("AgricolaHuarmeyDB", 2);
@@ -344,7 +340,6 @@
       }
     }
 
-    // Sincronización Directa
     async function sincronizarDatos(manual = false) {
       setConnectionStatus("connecting", "Sincronizando...");
       const icon = document.getElementById("syncIcon");
@@ -389,7 +384,6 @@
       renderTabla(filteredData);
     }
 
-    // Conteo exacto para KPIs incluyendo combinaciones
     function renderKpis(data) {
       let asistencias = 0, faltas = 0, faltaMarc = 0, faltaTareo = 0, faltaAmbos = 0;
 
@@ -505,6 +499,31 @@
       procesarYRenderizar(dbData);
     }
 
+    // --- FUNCIÓN HELPER PARA CALCULAR FALTAS Y ALERTAS DE UN EMPLEADO ---
+    function obtenerAlertaEmpleado(dataEmpleado) {
+      let totalFaltas = 0;
+      let faltasLunSab = 0;
+
+      dataEmpleado.forEach(d => {
+        const estado = (d.ESTADO_MATRIZ || d.ALERTA || "").toString().trim().toUpperCase();
+        if (estado === "FALTO") {
+          totalFaltas++;
+          const info = formatFechaShortConDia(d.FECHA_INDICE);
+          // Si cae de lunes (1) a sábado (6)
+          if (info.numDia >= 1 && info.numDia <= 6) {
+            faltasLunSab++;
+          }
+        }
+      });
+
+      if (faltasLunSab > 6) {
+        return '<span class="px-2 py-0.5 rounded-full text-[10px] font-bold alert-rojo">DAR DE BAJA</span>';
+      } else if (totalFaltas > 3) {
+        return '<span class="px-2 py-0.5 rounded-full text-[10px] font-bold alert-amarillo">MAS DE 3 FALTAS</span>';
+      }
+      return '<span class="text-gray-400">-</span>';
+    }
+
     // --- LÓGICA DE LA MATRIZ DE ASISTENCIA ---
     function toggleSortMatriz() {
       sortMatrizAsc = !sortMatrizAsc;
@@ -520,11 +539,15 @@
     function renderMatriz(data) {
       const fechas = [...new Set(data.map(i => i.FECHA_INDICE))].filter(Boolean).sort();
       
-      // Totales de personas registradas por día (filas)
-      const personasPorFecha = {};
+      // Totales de ASISTIO por cada fecha
+      const asistioPorFecha = {};
       fechas.forEach(f => {
-        const dnisUnicos = new Set(data.filter(d => d.FECHA_INDICE === f).map(d => d.DNI));
-        personasPorFecha[f] = dnisUnicos.size;
+        const countAsistio = data.filter(d => {
+          if (d.FECHA_INDICE !== f) return false;
+          const est = (d.ESTADO_MATRIZ || d.ALERTA || "").toString().trim().toUpperCase();
+          return est === "ASISTIO";
+        }).length;
+        asistioPorFecha[f] = countAsistio;
       });
 
       // Obtener Empleados Únicos
@@ -541,7 +564,7 @@
         return sortMatrizAsc ? a.nombre.localeCompare(b.nombre) : b.nombre.localeCompare(a.nombre);
       });
 
-      // Paginación de 50 registros por página
+      // Paginación
       const totalPaginas = Math.ceil(empleados.length / PAGE_SIZE) || 1;
       if (pagMatriz < 1) pagMatriz = 1;
       if (pagMatriz > totalPaginas) pagMatriz = totalPaginas;
@@ -553,13 +576,13 @@
       document.getElementById("btnMatrizPrev").disabled = pagMatriz === 1;
       document.getElementById("btnMatrizNext").disabled = pagMatriz === totalPaginas;
 
-      // Encabezados con Día, Fecha y Totales por día encima
+      // Header de la Matriz con Total Asistió por columna de Fecha
       const headerRow = document.getElementById("matrizHeader");
       headerRow.innerHTML = `
         <tr>
           <th class="p-2 border bg-gray-100"></th>
           <th class="p-2 border bg-gray-100"></th>
-          ${fechas.map(f => `<th class="p-1 border bg-emerald-50 text-center font-bold text-emerald-800 text-[10px]">${personasPorFecha[f] || 0} pers.</th>`).join("")}
+          ${fechas.map(f => `<th class="p-1 border bg-emerald-50 text-center font-bold text-emerald-800 text-[10px]">Tot: ${asistioPorFecha[f] || 0}</th>`).join("")}
           <th class="p-2 border bg-gray-100"></th>
           <th class="p-2 border bg-gray-100"></th>
           <th class="p-2 border bg-gray-100"></th>
@@ -580,15 +603,23 @@
         </tr>
       `;
 
-      // Filas de Datos
+      // Filas de Datos de la Matriz
       const body = document.getElementById("matrizBody");
       body.innerHTML = empleadosPagina.map(emp => {
         let totAsistio = 0;
         let totFalto = 0;
+        const dataEmp = data.filter(d => d.DNI === emp.dni);
 
         const celdasFechas = fechas.map(f => {
-          const reg = data.find(d => d.DNI === emp.dni && d.FECHA_INDICE === f);
-          const estado = reg ? reg.ESTADO_MATRIZ || (reg.ALERTA === "ASISTIO" ? "ASISTIO" : "FALTO") : "INACTIVO";
+          const reg = dataEmp.find(d => d.FECHA_INDICE === f);
+          
+          let estado = "INACTIVO";
+          if (reg) {
+            estado = (reg.ESTADO_MATRIZ || reg.ALERTA || "INACTIVO").toString().trim().toUpperCase();
+            if (!["ASISTIO", "FALTO", "FERIADO"].includes(estado)) {
+              estado = "INACTIVO";
+            }
+          }
           
           if (estado === "ASISTIO") totAsistio++;
           if (estado === "FALTO") totFalto++;
@@ -601,14 +632,7 @@
           return `<td class="p-2 border text-center"><span class="px-2 py-0.5 rounded-full text-[10px] font-bold ${badgeClass}">${estado}</span></td>`;
         }).join("");
 
-        let maxFaltasSemana = Math.max(...data.filter(d => d.DNI === emp.dni).map(d => d.FALTAS_SEMANA || 0), 0);
-        let alertaBadge = '<span class="text-gray-400">-</span>';
-        
-        if (maxFaltasSemana >= 6) {
-          alertaBadge = '<span class="px-2 py-0.5 rounded-full text-[10px] font-bold alert-rojo">ELIMINAR (6 Faltas)</span>';
-        } else if (maxFaltasSemana > 3) {
-          alertaBadge = '<span class="px-2 py-0.5 rounded-full text-[10px] font-bold alert-amarillo">> 3 Faltas</span>';
-        }
+        const alertaBadge = obtenerAlertaEmpleado(dataEmp);
 
         return `
           <tr class="hover:bg-gray-50">
@@ -644,7 +668,6 @@
         return sortDetalleAsc ? nameA.localeCompare(nameB) : nameB.localeCompare(nameA);
       });
 
-      // Paginación de 50 registros por página
       const totalPaginas = Math.ceil(dataOrdenada.length / PAGE_SIZE) || 1;
       if (pagDetalle < 1) pagDetalle = 1;
       if (pagDetalle > totalPaginas) pagDetalle = totalPaginas;
@@ -658,15 +681,8 @@
 
       const tbody = document.getElementById("tablaDetalle");
       tbody.innerHTML = dataPagina.map(item => {
-        const faltasSem = item.FALTAS_SEMANA || 0;
-        const faltasCons = item.FALTAS_CONSECUTIVAS || 0;
-        let alertaFaltasBadge = '<span class="text-gray-400">-</span>';
-
-        if (faltasSem >= 6 || faltasCons >= 6) {
-          alertaFaltasBadge = '<span class="px-2 py-0.5 rounded-full text-[10px] font-bold alert-rojo">6 Faltas Consecutivas / Eliminar</span>';
-        } else if (faltasSem > 3 || faltasCons > 3) {
-          alertaFaltasBadge = '<span class="px-2 py-0.5 rounded-full text-[10px] font-bold alert-amarillo">> 3 Faltas</span>';
-        }
+        const dataEmp = data.filter(d => d.DNI === item.DNI);
+        const alertaFaltasBadge = obtenerAlertaEmpleado(dataEmp);
 
         return `
           <tr class="hover:bg-gray-50">

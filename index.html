@@ -5,21 +5,18 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>Agrícola Huarmey — Control de Asistencia</title>
     
-    <!-- PWA & Theme Meta -->
+    <!-- PWA Meta -->
     <link rel="manifest" href="manifest.json">
     <meta name="theme-color" content="#2E7D32">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <link rel="apple-touch-icon" href="logo.png">
 
-    <!-- Third Party CDN (Chart.js & Lucide Icons) -->
+    <!-- CDN External Dependencies -->
     <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/lucide@0.294.0/dist/umd/lucide.min.js"></script>
 
     <style>
-        /* ==========================================================================
-           2. IDENTIDAD VISUAL & ESTILOS BASE (PALETA AGRÍCOLA HUARMEY)
-           ========================================================================== */
         :root {
             --primary-green: #2E7D32;
             --light-green: #E8F5E9;
@@ -33,7 +30,6 @@
             --text-muted: #666666;
             --border-color: #E0E0E0;
             
-            /* Status Colors */
             --status-asistio: #2E7D32;
             --status-falto: #D32F2F;
             --status-feriado: #0288D1;
@@ -67,14 +63,48 @@
             overflow-x: hidden;
         }
 
-        /* App Layout Structure */
+        /* Notificaciones Flotantes (Toast) */
+        #toast-container {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            z-index: 9999;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            max-width: 340px;
+            width: 90%;
+        }
+
+        .toast {
+            padding: 12px 16px;
+            border-radius: var(--radius-sm);
+            color: #fff;
+            font-size: 13px;
+            font-weight: 600;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            animation: slideIn 0.3s ease-out forwards;
+        }
+
+        .toast.success { background-color: var(--primary-green); }
+        .toast.error { background-color: var(--primary-red); }
+        .toast.warning { background-color: var(--status-alerta); }
+
+        @keyframes slideIn {
+            from { transform: translateX(100%); opacity: 0; }
+            to { transform: translateX(0); opacity: 1; }
+        }
+
+        /* App Layout */
         .app-container {
             display: flex;
             flex: 1;
             width: 100%;
         }
 
-        /* Sidebar (Desktop) */
         .sidebar {
             width: var(--sidebar-width);
             background: var(--card-bg);
@@ -86,7 +116,6 @@
             bottom: 0;
             left: 0;
             z-index: 100;
-            transition: var(--transition);
         }
 
         .brand-header {
@@ -125,7 +154,6 @@
             padding: 12px 16px;
             border-radius: var(--radius-sm);
             color: var(--text-muted);
-            text-decoration: none;
             font-size: 14px;
             font-weight: 500;
             cursor: pointer;
@@ -138,22 +166,15 @@
             font-weight: 600;
         }
 
-        .nav-item i {
-            width: 20px;
-            height: 20px;
-        }
-
-        /* Main Content Area */
         .main-wrapper {
             flex: 1;
             margin-left: var(--sidebar-width);
             display: flex;
             flex-direction: column;
             min-width: 0;
-            padding-bottom: 70px; /* Space for bottom nav on mobile */
+            padding-bottom: 70px;
         }
 
-        /* Top Header */
         .top-header {
             height: var(--header-height);
             background: var(--card-bg);
@@ -202,7 +223,6 @@
         .online .status-dot { background-color: var(--accent-green); }
         .offline .status-dot { background-color: var(--primary-red); }
 
-        /* Bottom Navigation (Mobile First) */
         .bottom-nav {
             display: none;
             position: fixed;
@@ -215,7 +235,6 @@
             z-index: 1000;
             justify-content: space-around;
             align-items: center;
-            padding: 0 4px;
         }
 
         .bottom-nav-item {
@@ -225,7 +244,6 @@
             gap: 2px;
             color: var(--text-muted);
             font-size: 10px;
-            text-decoration: none;
             padding: 6px;
             width: 20%;
             cursor: pointer;
@@ -236,7 +254,6 @@
             font-weight: 700;
         }
 
-        /* Content Sections */
         .content-area {
             padding: 20px;
             max-width: 1400px;
@@ -244,15 +261,9 @@
             width: 100%;
         }
 
-        .tab-section {
-            display: none;
-        }
+        .tab-section { display: none; }
+        .tab-section.active { display: block; }
 
-        .tab-section.active {
-            display: block;
-        }
-
-        /* Cards & Components */
         .card {
             background: var(--card-bg);
             border-radius: var(--radius-md);
@@ -278,7 +289,6 @@
             gap: 8px;
         }
 
-        /* Grid System */
         .kpi-grid {
             display: grid;
             grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
@@ -292,47 +302,17 @@
             padding: 16px;
             box-shadow: var(--shadow-soft);
             border-left: 5px solid var(--primary-green);
-            display: flex;
-            flex-direction: column;
-            justify-content: space-between;
         }
 
         .kpi-card.red { border-left-color: var(--primary-red); }
         .kpi-card.yellow { border-left-color: var(--status-alerta); }
 
-        .kpi-title {
-            font-size: 12px;
-            font-weight: 600;
-            color: var(--text-muted);
-            text-transform: uppercase;
-        }
+        .kpi-title { font-size: 12px; font-weight: 600; color: var(--text-muted); }
+        .kpi-value-row { display: flex; align-items: baseline; justify-content: space-between; margin-top: 8px; }
+        .kpi-value { font-size: 28px; font-weight: 800; color: var(--text-dark); }
+        .kpi-icon { opacity: 0.2; width: 32px; height: 32px; }
+        .kpi-subtext { font-size: 11px; color: var(--text-muted); margin-top: 4px; }
 
-        .kpi-value-row {
-            display: flex;
-            align-items: baseline;
-            justify-content: space-between;
-            margin-top: 8px;
-        }
-
-        .kpi-value {
-            font-size: 28px;
-            font-weight: 800;
-            color: var(--text-dark);
-        }
-
-        .kpi-icon {
-            opacity: 0.2;
-            width: 32px;
-            height: 32px;
-        }
-
-        .kpi-subtext {
-            font-size: 11px;
-            color: var(--text-muted);
-            margin-top: 4px;
-        }
-
-        /* Charts Grid */
         .charts-grid {
             display: grid;
             grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
@@ -340,13 +320,8 @@
             margin-bottom: 20px;
         }
 
-        .chart-container {
-            position: relative;
-            height: 250px;
-            width: 100%;
-        }
+        .chart-container { position: relative; height: 250px; width: 100%; }
 
-        /* Filters Section */
         .filters-card {
             background: var(--card-bg);
             padding: 16px;
@@ -362,18 +337,8 @@
             margin-top: 12px;
         }
 
-        .filter-group {
-            display: flex;
-            flex-direction: column;
-            gap: 4px;
-        }
-
-        .filter-label {
-            font-size: 11px;
-            font-weight: 600;
-            color: var(--text-muted);
-        }
-
+        .filter-group { display: flex; flex-direction: column; gap: 4px; }
+        .filter-label { font-size: 11px; font-weight: 600; color: var(--text-muted); }
         .filter-input, .filter-select {
             padding: 8px 12px;
             border-radius: var(--radius-sm);
@@ -381,11 +346,6 @@
             font-size: 13px;
             outline: none;
             background: #FAFAFA;
-        }
-
-        .filter-input:focus, .filter-select:focus {
-            border-color: var(--primary-green);
-            background: #FFF;
         }
 
         .btn {
@@ -398,19 +358,14 @@
             display: inline-flex;
             align-items: center;
             gap: 6px;
-            transition: var(--transition);
         }
 
         .btn-primary { background: var(--primary-green); color: #FFF; }
-        .btn-primary:hover { background: var(--dark-green); }
         .btn-outline { background: transparent; border: 1px solid var(--border-color); color: var(--text-dark); }
-        .btn-outline:hover { background: #E0E0E0; }
 
-        /* Tables & Matrix */
         .table-responsive {
             width: 100%;
             overflow-x: auto;
-            -webkit-overflow-scrolling: touch;
             border-radius: var(--radius-sm);
             border: 1px solid var(--border-color);
         }
@@ -419,7 +374,6 @@
             width: 100%;
             border-collapse: collapse;
             font-size: 12px;
-            text-align: left;
             white-space: nowrap;
         }
 
@@ -438,15 +392,6 @@
             border-bottom: 1px solid var(--border-color);
         }
 
-        .data-table tbody tr:nth-child(even) {
-            background-color: #FAFAFA;
-        }
-
-        .data-table tbody tr:hover {
-            background-color: #F0F7F0;
-        }
-
-        /* Matrix Calendar Styles */
         .matrix-cell {
             text-align: center;
             padding: 6px;
@@ -460,16 +405,13 @@
         .tag-feriado { background: #E1F5FE; color: var(--status-feriado); }
         .tag-inactivo { background: #EEEEEE; color: var(--status-inactivo); }
 
-        /* Weekly Status Badges */
         .badge-normal { background: var(--light-green); color: var(--dark-green); padding: 4px 8px; border-radius: 12px; font-weight: 700; font-size: 10px; }
         .badge-alerta { background: var(--status-alerta-bg); color: var(--status-alerta); padding: 4px 8px; border-radius: 12px; font-weight: 700; font-size: 10px; }
         .badge-critico { background: var(--light-red); color: var(--primary-red); padding: 4px 8px; border-radius: 12px; font-weight: 700; font-size: 10px; }
 
-        /* Sticky Columns in Matrix */
         .sticky-col-1 { position: sticky; left: 0; background: #FFF; z-index: 5; }
         .sticky-col-2 { position: sticky; left: 90px; background: #FFF; z-index: 5; border-right: 2px solid var(--border-color); }
 
-        /* Responsive Breakpoints */
         @media (max-width: 768px) {
             .sidebar { display: none; }
             .main-wrapper { margin-left: 0; }
@@ -483,11 +425,11 @@
 </head>
 <body>
 
-    <!-- ==========================================================================
-       3. ESTRUCTURA Y NAVEGACIÓN
-       ========================================================================== -->
+    <!-- Contenedor de Notificaciones Toast -->
+    <div id="toast-container"></div>
+
     <div class="app-container">
-        <!-- Sidebar (Desktop Navigation) -->
+        <!-- Sidebar Navigation -->
         <aside class="sidebar">
             <div class="brand-header">
                 <img src="logo.png" alt="Agrícola Huarmey" class="brand-logo" onerror="this.src='https://via.placeholder.com/150x50?text=Huarmey'">
@@ -517,15 +459,13 @@
 
         <!-- Main Wrapper -->
         <main class="main-wrapper">
-            <!-- Header Bar -->
             <header class="top-header">
                 <div class="header-title" id="page-title">Dashboard Ejecutivo</div>
-                <div class="connection-badge online" id="net-status">
-                    <span class="status-dot"></span> <span id="net-text">Conectado</span>
+                <div class="connection-badge offline" id="net-status">
+                    <span class="status-dot"></span> <span id="net-text">Comprobando...</span>
                 </div>
             </header>
 
-            <!-- Main Content Area -->
             <div class="content-area">
 
                 <!-- FILTROS GLOBALES -->
@@ -545,15 +485,11 @@
                         </div>
                         <div class="filter-group">
                             <label class="filter-label">Semana</label>
-                            <select id="f-semana" class="filter-select" onchange="applyFilters()">
-                                <option value="">Todas</option>
-                            </select>
+                            <select id="f-semana" class="filter-select" onchange="applyFilters()"><option value="">Todas</option></select>
                         </div>
                         <div class="filter-group">
                             <label class="filter-label">Mes</label>
-                            <select id="f-mes" class="filter-select" onchange="applyFilters()">
-                                <option value="">Todos</option>
-                            </select>
+                            <select id="f-mes" class="filter-select" onchange="applyFilters()"><option value="">Todos</option></select>
                         </div>
                         <div class="filter-group">
                             <label class="filter-label">Alerta</label>
@@ -566,16 +502,13 @@
                         </div>
                         <div class="filter-group">
                             <label class="filter-label">Modalidad</label>
-                            <select id="f-modalidad" class="filter-select" onchange="applyFilters()">
-                                <option value="">Todas</option>
-                            </select>
+                            <select id="f-modalidad" class="filter-select" onchange="applyFilters()"><option value="">Todas</option></select>
                         </div>
                     </div>
                 </div>
 
-                <!-- SECTION 1: DASHBOARD -->
+                <!-- DASHBOARD -->
                 <section id="sec-dashboard" class="tab-section active">
-                    <!-- KPI Cards -->
                     <div class="kpi-grid">
                         <div class="kpi-card">
                             <div class="kpi-title">Personal Asistió</div>
@@ -623,32 +556,23 @@
                         </div>
                     </div>
 
-                    <!-- Charts Grid -->
                     <div class="charts-grid">
                         <div class="card">
                             <div class="card-title"><i data-lucide="pie-chart"></i> Distribución por Sexo</div>
-                            <div class="chart-container">
-                                <canvas id="chart-sexo"></canvas>
-                            </div>
+                            <div class="chart-container"><canvas id="chart-sexo"></canvas></div>
                         </div>
-
                         <div class="card">
                             <div class="card-title"><i data-lucide="bar-chart-2"></i> Histórico Personal</div>
-                            <div class="chart-container">
-                                <canvas id="chart-historico"></canvas>
-                            </div>
+                            <div class="chart-container"><canvas id="chart-historico"></canvas></div>
                         </div>
-
                         <div class="card">
                             <div class="card-title"><i data-lucide="bus"></i> Modalidad Transporte</div>
-                            <div class="chart-container">
-                                <canvas id="chart-modalidad"></canvas>
-                            </div>
+                            <div class="chart-container"><canvas id="chart-modalidad"></canvas></div>
                         </div>
                     </div>
                 </section>
 
-                <!-- SECTION 2: MATRIZ DE ASISTENCIA -->
+                <!-- MATRIZ DE ASISTENCIA -->
                 <section id="sec-matriz" class="tab-section">
                     <div class="card">
                         <div class="card-header">
@@ -656,7 +580,7 @@
                             <span style="font-size:11px; color:var(--text-muted)">🟢 Asistió | 🔴 Faltó | 🔵 Feriado | ⚪ Inactivo</span>
                         </div>
                         <div class="table-responsive">
-                            <table class="data-table" id="matrix-table">
+                            <table class="data-table">
                                 <thead id="matrix-head"></thead>
                                 <tbody id="matrix-body"></tbody>
                             </table>
@@ -664,11 +588,11 @@
                     </div>
                 </section>
 
-                <!-- SECTION 3: CONTROL DE FALTAS SEMANALES -->
+                <!-- CONTROL SEMANAL DE FALTAS -->
                 <section id="sec-resumen" class="tab-section">
                     <div class="card">
                         <div class="card-header">
-                            <div class="card-title"><i data-lucide="shield-alert"></i> Alertas y Exclusión Semanal de Faltas</div>
+                            <div class="card-title"><i data-lucide="shield-alert"></i> Alertas y Exclusión Semanal</div>
                             <button class="btn btn-outline" onclick="exportWeeklyCSV()"><i data-lucide="download"></i> Exportar Resumen</button>
                         </div>
                         <div class="table-responsive">
@@ -681,7 +605,7 @@
                                         <th>ASISTENCIAS</th>
                                         <th>FALTAS</th>
                                         <th>ESTADO</th>
-                                        <th>ACCIÓN / EXCLUSIÓN LOGICA</th>
+                                        <th>ACCIÓN</th>
                                     </tr>
                                 </thead>
                                 <tbody id="weekly-body"></tbody>
@@ -690,16 +614,14 @@
                     </div>
                 </section>
 
-                <!-- SECTION 4: TABLA DETALLE -->
+                <!-- TABLA DETALLE -->
                 <section id="sec-detalle" class="tab-section">
                     <div class="card">
                         <div class="card-header">
-                            <div class="card-title"><i data-lucide="list"></i> Registros Detallados de Campo</div>
+                            <div class="card-title"><i data-lucide="list"></i> Registros Detallados</div>
                             <button class="btn btn-primary" onclick="exportFullCSV()"><i data-lucide="download"></i> Exportar CSV</button>
                         </div>
-                        <div style="margin-bottom: 10px; font-size: 12px; color: var(--text-muted);" id="detail-count-label">
-                            Mostrando 0 registros
-                        </div>
+                        <div style="margin-bottom: 10px; font-size: 12px; color: var(--text-muted);" id="detail-count-label">Mostrando 0 registros</div>
                         <div class="table-responsive">
                             <table class="data-table">
                                 <thead>
@@ -725,13 +647,10 @@
                     </div>
                 </section>
 
-                <!-- SECTION 5: SINCRONIZACIÓN -->
+                <!-- SINCRONIZACIÓN -->
                 <section id="sec-sincro" class="tab-section">
                     <div class="card">
-                        <div class="card-title" style="margin-bottom:12px;"><i data-lucide="refresh-cw"></i> Estado de Sincronización Offline</div>
-                        <p style="font-size: 13px; color: var(--text-muted); margin-bottom: 16px;">
-                            Los cambios realizados offline se guardan localmente en IndexedDB y se sincronizan automáticamente al recuperar la conexión.
-                        </p>
+                        <div class="card-title" style="margin-bottom:12px;"><i data-lucide="refresh-cw"></i> Estado de Sincronización</div>
                         <div style="display: flex; gap: 10px; margin-bottom: 20px;">
                             <button class="btn btn-primary" onclick="syncPendingRecords()"><i data-lucide="upload-cloud"></i> Forzar Sincronización</button>
                             <button class="btn btn-outline" onclick="fetchCloudData()"><i data-lucide="download-cloud"></i> Recargar de Google Sheets</button>
@@ -756,74 +675,190 @@
         </main>
     </div>
 
-    <!-- Bottom Navigation Bar for Mobile Devices -->
+    <!-- Bottom Navigation Bar (Mobile) -->
     <nav class="bottom-nav">
-        <div class="bottom-nav-item active" onclick="switchTab('dashboard')">
-            <i data-lucide="layout-dashboard"></i>
-            <span>Dashboard</span>
-        </div>
-        <div class="bottom-nav-item" onclick="switchTab('matriz')">
-            <i data-lucide="calendar"></i>
-            <span>Matriz</span>
-        </div>
-        <div class="bottom-nav-item" onclick="switchTab('resumen')">
-            <i data-lucide="alert-triangle"></i>
-            <span>Alertas</span>
-        </div>
-        <div class="bottom-nav-item" onclick="switchTab('detalle')">
-            <i data-lucide="table"></i>
-            <span>Detalle</span>
-        </div>
-        <div class="bottom-nav-item" onclick="switchTab('sincro')">
-            <i data-lucide="refresh-cw"></i>
-            <span>Sincro</span>
-        </div>
+        <div class="bottom-nav-item active" onclick="switchTab('dashboard')"><i data-lucide="layout-dashboard"></i><span>Dashboard</span></div>
+        <div class="bottom-nav-item" onclick="switchTab('matriz')"><i data-lucide="calendar"></i><span>Matriz</span></div>
+        <div class="bottom-nav-item" onclick="switchTab('resumen')"><i data-lucide="alert-triangle"></i><span>Alertas</span></div>
+        <div class="bottom-nav-item" onclick="switchTab('detalle')"><i data-lucide="table"></i><span>Detalle</span></div>
+        <div class="bottom-nav-item" onclick="switchTab('sincro')"><i data-lucide="refresh-cw"></i><span>Sincro</span></div>
     </nav>
 
-    <!-- ==========================================================================
-       4. JAVASCRIPT LOGIC (INDEXEDDB, CHARTS, FILTERS, SYNC)
-       ========================================================================== -->
     <script>
-        // CONFIGURACIÓN PRINCIPAL
+        // CONFIGURACIÓN DE LA APLICACIÓN
         const CONFIG = {
-            apiUrl: 'https://script.google.com/macros/s/AKfycbzPf30Iv19tt_Pe4hpjHuj3Chr3KZpACqJ5Zg8Y-AiFZOyq60rC1ltmf1s6vqEzExy3/exec', // REEMPLAZAR CON TU URL DE WEB APP
+            // Reemplaza esta URL con la desplegada en tu Apps Script
+            apiUrl: 'https://script.google.com/macros/s/AKfycby4wEZR8UOTuTUmd-y5r1wWJRMn4oSfSU2NraBHH15EKdDWTXuvh4wAHwMdz01ZlRZ0/exec',
             dbName: 'HuarmeyAsistenciaDB',
             dbVersion: 1,
-            syncInterval: 30000 // 30 segundos
+            syncInterval: 30000
         };
 
-        // GLOBAL STATES
         let rawData = [];
         let filteredData = [];
-        let excludedWorkers = new Set(); // Exclusión lógica semanal
+        let excludedWorkers = new Set();
         let db = null;
         let chartSexoInstance = null;
         let chartHistoricoInstance = null;
         let chartModalidadInstance = null;
 
-        // INICIALIZACIÓN DE LA APLICACIÓN
         document.addEventListener('DOMContentLoaded', async () => {
             lucide.createIcons();
             await initIndexedDB();
             initNetworkStatus();
             await loadLocalData();
-            if (navigator.onLine) {
-                fetchCloudData();
-            }
-            setInterval(autoSync, CONFIG.syncInterval);
             registerServiceWorker();
+            setInterval(autoSync, CONFIG.syncInterval);
         });
 
-        // 1. REGISTRO DE SERVICE WORKER
-        function registerServiceWorker() {
-            if ('serviceWorker' in navigator) {
-                navigator.serviceWorker.register('./service-worker.js')
-                    .then(reg => console.log('SW Registrado:', reg.scope))
-                    .catch(err => console.log('SW Error:', err));
+        // 1. NOTIFICACIONES TOAST Y VALIDACIÓN DE CONEXIÓN A GOOGLE SHEETS
+        function showToast(message, type = 'success') {
+            const container = document.getElementById('toast-container');
+            const toast = document.createElement('div');
+            toast.className = `toast ${type}`;
+            toast.innerHTML = `<span>${message}</span>`;
+            
+            container.appendChild(toast);
+            
+            setTimeout(() => {
+                toast.style.opacity = '0';
+                toast.style.transition = 'opacity 0.5s ease';
+                setTimeout(() => toast.remove(), 500);
+            }, 4000);
+        }
+
+        async function checkGoogleSheetsConnection() {
+            if (!navigator.onLine) {
+                updateStatusUI(false, 'Sin Conexión a Internet');
+                return false;
+            }
+
+            try {
+                const controller = new AbortController();
+                const timeoutId = setTimeout(() => controller.abort(), 6000);
+
+                const res = await fetch(`${CONFIG.apiUrl}?action=health`, {
+                    method: 'GET',
+                    redirect: 'follow',
+                    signal: controller.signal
+                });
+                
+                clearTimeout(timeoutId);
+                const json = await res.json();
+
+                if (json.status === 'SUCCESS') {
+                    updateStatusUI(true, 'Conectado a Google');
+                    return true;
+                } else {
+                    throw new Error('Respuesta no válida');
+                }
+            } catch (err) {
+                updateStatusUI(false, 'Sin Conexión a Google');
+                showToast('🚨 Sin conexión con Google Sheets. Usando datos locales en el teléfono.', 'error');
+                return false;
             }
         }
 
-        // 2. BASE DE DATOS LOCAL (IndexedDB)
+        function updateStatusUI(isConnected, message) {
+            const badge = document.getElementById('net-status');
+            const text = document.getElementById('net-text');
+            
+            if (isConnected) {
+                badge.className = 'connection-badge online';
+                text.innerText = message;
+            } else {
+                badge.className = 'connection-badge offline';
+                text.innerText = message;
+            }
+        }
+
+        function initNetworkStatus() {
+            window.addEventListener('online', async () => {
+                showToast('Red detectada. Probando conexión a Google Sheets...', 'warning');
+                const isConnected = await checkGoogleSheetsConnection();
+                if (isConnected) {
+                    showToast('✅ Conexión restablecida con Google Sheets.', 'success');
+                    syncPendingRecords();
+                }
+            });
+
+            window.addEventListener('offline', () => {
+                updateStatusUI(false, 'Sin Internet');
+                showToast('⚠️ Se perdió la conexión a Internet.', 'error');
+            });
+
+            checkGoogleSheetsConnection();
+        }
+
+        // 2. DESCARGA Y SINCRONIZACIÓN DE DATOS
+        async function fetchCloudData() {
+            const isConnected = await checkGoogleSheetsConnection();
+            if (!isConnected) return;
+
+            try {
+                showToast('Descargando asistencia desde Google Sheets...', 'warning');
+                const res = await fetch(`${CONFIG.apiUrl}?action=getData`, {
+                    method: 'GET',
+                    redirect: 'follow'
+                });
+                const json = await res.json();
+
+                if (json.status === 'SUCCESS' && Array.isArray(json.data)) {
+                    rawData = json.data.map(item => ({
+                        ...item,
+                        sync_status: 'SINCRONIZADO'
+                    }));
+                    await saveLocalData(rawData);
+                    populateFilterDropdowns();
+                    applyFilters();
+                    showToast(`✅ Se cargaron ${json.data.length} registros actualizados.`, 'success');
+                } else {
+                    showToast('❌ Error en el formato de datos de Google Sheets.', 'error');
+                }
+            } catch (err) {
+                showToast('❌ No se pudo conectar con el servidor de Google.', 'error');
+            }
+        }
+
+        async function syncPendingRecords() {
+            if (!navigator.onLine || !db) return;
+            const tx = db.transaction('asistencia', 'readonly');
+            const store = tx.objectStore('asistencia');
+            const index = store.index('sync_status');
+            const request = index.getAll('PENDIENTE');
+
+            request.onsuccess = async () => {
+                const pending = request.result;
+                if (!pending || pending.length === 0) return;
+
+                try {
+                    showToast(`Sincronizando ${pending.length} registros pendientes...`, 'warning');
+                    const res = await fetch(CONFIG.apiUrl, {
+                        method: 'POST',
+                        redirect: 'follow',
+                        headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+                        body: JSON.stringify({ action: 'sync', records: pending })
+                    });
+                    const json = await res.json();
+                    if (json.status === 'SUCCESS') {
+                        pending.forEach(r => r.sync_status = 'SINCRONIZADO');
+                        await saveLocalData(pending);
+                        renderSyncTable();
+                        showToast('✅ Sincronización con Google Sheets completada.', 'success');
+                    }
+                } catch (err) {
+                    showToast('❌ Error al intentar sincronizar registros.', 'error');
+                }
+            };
+        }
+
+        function autoSync() {
+            if (navigator.onLine) {
+                syncPendingRecords();
+            }
+        }
+
+        // 3. PERSISTENCIA LOCAL (IndexedDB)
         function initIndexedDB() {
             return new Promise((resolve, reject) => {
                 const request = indexedDB.open(CONFIG.dbName, CONFIG.dbVersion);
@@ -868,82 +903,16 @@
             });
         }
 
-        // 3. COMUNICACIÓN Y SINCRONIZACIÓN API
-        async function fetchCloudData() {
-            if (!navigator.onLine) return;
-            try {
-                const res = await fetch(`${CONFIG.apiUrl}?action=getData`);
-                const json = await res.json();
-                if (json.status === 'SUCCESS' && Array.isArray(json.data)) {
-                    rawData = json.data.map(item => ({
-                        ...item,
-                        sync_status: 'SINCRONIZADO'
-                    }));
-                    await saveLocalData(rawData);
-                    populateFilterDropdowns();
-                    applyFilters();
-                }
-            } catch (err) {
-                console.error('Error descargando datos:', err);
+        // 4. REGISTRO SERVICE WORKER
+        function registerServiceWorker() {
+            if ('serviceWorker' in navigator) {
+                navigator.serviceWorker.register('./service-worker.js')
+                    .then(reg => console.log('SW registrado:', reg.scope))
+                    .catch(err => console.log('Error SW:', err));
             }
         }
 
-        async function syncPendingRecords() {
-            if (!navigator.onLine || !db) return;
-            const tx = db.transaction('asistencia', 'readonly');
-            const store = tx.objectStore('asistencia');
-            const index = store.index('sync_status');
-            const request = index.getAll('PENDIENTE');
-
-            request.onsuccess = async () => {
-                const pending = request.result;
-                if (pending.length === 0) return;
-
-                try {
-                    const res = await fetch(CONFIG.apiUrl, {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({ action: 'sync', records: pending })
-                    });
-                    const json = await res.json();
-                    if (json.status === 'SUCCESS') {
-                        pending.forEach(r => r.sync_status = 'SINCRONIZADO');
-                        await saveLocalData(pending);
-                        renderSyncTable();
-                    }
-                } catch (err) {
-                    console.error('Error al sincronizar:', err);
-                }
-            };
-        }
-
-        function autoSync() {
-            if (navigator.onLine) {
-                syncPendingRecords();
-            }
-        }
-
-        // 4. DETECCIÓN DE RED
-        function initNetworkStatus() {
-            const badge = document.getElementById('net-status');
-            const text = document.getElementById('net-text');
-
-            function update() {
-                if (navigator.onLine) {
-                    badge.className = 'connection-badge online';
-                    text.innerText = 'Conectado';
-                    syncPendingRecords();
-                } else {
-                    badge.className = 'connection-badge offline';
-                    text.innerText = 'Sin Conexión';
-                }
-            }
-            window.addEventListener('online', update);
-            window.addEventListener('offline', update);
-            update();
-        }
-
-        // 5. FILTROS INTERACTIVOS
+        // 5. FILTROS Y RENDERIZADO DE COMPONENTES
         function populateFilterDropdowns() {
             const semanas = [...new Set(rawData.map(r => r.SEMANA))].sort((a,b) => a-b);
             const meses = [...new Set(rawData.map(r => r.MES))].filter(Boolean);
@@ -976,9 +945,7 @@
             const fModalidad = document.getElementById('f-modalidad').value;
 
             filteredData = rawData.filter(r => {
-                // Exclusión lógica de faltas críticas si aplica
                 if (excludedWorkers.has(r.DNI)) return false;
-
                 if (fDni && !String(r.DNI).includes(fDni)) return false;
                 if (fNombre && !String(r['APELLIDOS Y NOMBRES']).toLowerCase().includes(fNombre)) return false;
                 if (fSemana && String(r.SEMANA) !== fSemana) return false;
@@ -1005,7 +972,6 @@
             applyFilters();
         }
 
-        // 6. RENDERIZADO DEL DASHBOARD & CHARTS
         function renderDashboard() {
             const total = filteredData.length;
             const asistio = filteredData.filter(r => r.ALERTA === 'ASISTIO').length;
@@ -1025,7 +991,6 @@
         }
 
         function renderCharts() {
-            // Chart Sexo
             const ctxSexo = document.getElementById('chart-sexo').getContext('2d');
             const countM = filteredData.filter(r => r.SEXO === 'M').length;
             const countF = filteredData.filter(r => r.SEXO === 'F').length;
@@ -1033,14 +998,10 @@
             if (chartSexoInstance) chartSexoInstance.destroy();
             chartSexoInstance = new Chart(ctxSexo, {
                 type: 'doughnut',
-                data: {
-                    labels: ['Masculino (M)', 'Femenino (F)'],
-                    datasets: [{ data: [countM, countF], backgroundColor: ['#2E7D32', '#E91E63'] }]
-                },
+                data: { labels: ['Masculino (M)', 'Femenino (F)'], datasets: [{ data: [countM, countF], backgroundColor: ['#2E7D32', '#E91E63'] }] },
                 options: { responsive: true, maintainAspectRatio: false }
             });
 
-            // Chart Historico
             const ctxHist = document.getElementById('chart-historico').getContext('2d');
             const histCounts = {};
             filteredData.forEach(r => {
@@ -1051,14 +1012,10 @@
             if (chartHistoricoInstance) chartHistoricoInstance.destroy();
             chartHistoricoInstance = new Chart(ctxHist, {
                 type: 'bar',
-                data: {
-                    labels: Object.keys(histCounts),
-                    datasets: [{ label: 'Personal', data: Object.values(histCounts), backgroundColor: '#4CAF50' }]
-                },
+                data: { labels: Object.keys(histCounts), datasets: [{ label: 'Personal', data: Object.values(histCounts), backgroundColor: '#4CAF50' }] },
                 options: { responsive: true, maintainAspectRatio: false, indexAxis: 'y' }
             });
 
-            // Chart Modalidad
             const ctxMod = document.getElementById('chart-modalidad').getContext('2d');
             const modCounts = {};
             filteredData.forEach(r => {
@@ -1069,26 +1026,11 @@
             if (chartModalidadInstance) chartModalidadInstance.destroy();
             chartModalidadInstance = new Chart(ctxMod, {
                 type: 'pie',
-                data: {
-                    labels: Object.keys(modCounts),
-                    datasets: [{ data: Object.values(modCounts), backgroundColor: ['#0288D1', '#FF9800', '#9C27B0'] }]
-                },
-                options: {
-                    responsive: true,
-                    maintainAspectRatio: false,
-                    onClick: (e, elements) => {
-                        if (elements.length > 0) {
-                            const idx = elements[0].index;
-                            const modLabel = Object.keys(modCounts)[idx];
-                            document.getElementById('f-modalidad').value = modLabel;
-                            applyFilters();
-                        }
-                    }
-                }
+                data: { labels: Object.keys(modCounts), datasets: [{ data: Object.values(modCounts), backgroundColor: ['#0288D1', '#FF9800', '#9C27B0'] }] },
+                options: { responsive: true, maintainAspectRatio: false }
             });
         }
 
-        // 7. MATRIZ DE ASISTENCIA (CALENDARIO POR TRABAJADOR)
         function renderMatrix() {
             const head = document.getElementById('matrix-head');
             const body = document.getElementById('matrix-body');
@@ -1097,10 +1039,8 @@
 
             if (filteredData.length === 0) return;
 
-            // Extraer fechas únicas ordenadas
             const dates = [...new Set(filteredData.map(r => String(r['FECHA INDICE']).substring(0, 10)))].sort();
             
-            // Render Header
             let trHead = '<tr><th class="sticky-col-1">DNI</th><th class="sticky-col-2">NOMBRES Y APELLIDOS</th>';
             dates.forEach(d => {
                 const parts = d.split('-');
@@ -1109,7 +1049,6 @@
             trHead += '</tr>';
             head.innerHTML = trHead;
 
-            // Agrupar por trabajador
             const workers = {};
             filteredData.forEach(r => {
                 if (!workers[r.DNI]) {
@@ -1118,7 +1057,6 @@
                 workers[r.DNI].dates[String(r['FECHA INDICE']).substring(0, 10)] = r.ALERTA;
             });
 
-            // Render Body
             Object.keys(workers).forEach(dni => {
                 const w = workers[dni];
                 let tr = `<tr><td class="sticky-col-1">${dni}</td><td class="sticky-col-2">${w.nombre}</td>`;
@@ -1130,14 +1068,13 @@
                     else if (st === 'FALTO') { tagClass = 'tag-falto'; symbol = '🔴 FALTO'; }
                     else if (st === 'FERIADO') { tagClass = 'tag-feriado'; symbol = '🔵 FERIADO'; }
 
-                    tr += `<td><div class="matrix-cell ${tagClass}" title="${w.nombre} - ${d}: ${st}">${symbol}</div></td>`;
+                    tr += `<td><div class="matrix-cell ${tagClass}">${symbol}</div></td>`;
                 });
                 tr += '</tr>';
                 body.innerHTML += tr;
             });
         }
 
-        // 8. CONTROL DE FALTAS SEMANALES (ALERTAS Y EXCLUSIÓN LÓGICA)
         function renderWeeklyControl() {
             const body = document.getElementById('weekly-body');
             body.innerHTML = '';
@@ -1164,7 +1101,7 @@
                 }
 
                 const isExcluded = excludedWorkers.has(s.dni);
-                const btnText = isExcluded ? 'Incluir en Cálculo' : 'Excluir de Semana';
+                const btnText = isExcluded ? 'Incluir' : 'Excluir';
                 const btnClass = isExcluded ? 'btn-primary' : 'btn-outline';
 
                 body.innerHTML += `
@@ -1194,14 +1131,12 @@
             applyFilters();
         }
 
-        // 9. TABLA DE DETALLE DE REGISTROS
         function renderDetailTable() {
             const body = document.getElementById('detail-body');
             body.innerHTML = '';
-            document.getElementById('detail-count-label').innerText = `Mostrando ${filteredData.length} registros de un total de ${rawData.length}`;
+            document.getElementById('detail-count-label').innerText = `Mostrando ${filteredData.length} registros de ${rawData.length}`;
 
-            // Renderizado limitado a los primeros 200 para alto rendimiento
-            const limitData = filteredData.slice(0, 200);
+            const limitData = filteredData.slice(0, 150);
 
             limitData.forEach(r => {
                 const fecha = String(r['FECHA INDICE']).substring(0, 10);
@@ -1225,7 +1160,6 @@
             });
         }
 
-        // 10. TABLA DE SINCRONIZACIÓN
         function renderSyncTable() {
             const body = document.getElementById('sync-body');
             body.innerHTML = '';
@@ -1248,7 +1182,6 @@
             });
         }
 
-        // 11. EXPORTACIÓN A CSV
         function exportFullCSV() {
             let csv = 'DNI,APELLIDOS Y NOMBRES,SEMANA,MES,DIA,FECHA INDICE,ALERTA,ESTADO ASISTENCIA,HISTORICO,MODALIDAD,PLACA,RUTA,SEXO\n';
             filteredData.forEach(r => {
@@ -1280,7 +1213,6 @@
             a.click();
         }
 
-        // 12. NAVEGACIÓN ENTRE TABS
         function switchTab(tabId) {
             document.querySelectorAll('.tab-section').forEach(s => s.classList.remove('active'));
             document.querySelectorAll('.nav-item').forEach(i => i.classList.remove('active'));

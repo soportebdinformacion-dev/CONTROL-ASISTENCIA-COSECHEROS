@@ -29,7 +29,6 @@
   <header class="bg-white shadow-md sticky top-0 z-50">
     <div class="max-w-7xl mx-auto px-4 py-3 flex justify-between items-center flex-wrap gap-3">
       <div class="flex items-center space-x-3">
-        <!-- Logo de la Empresa -->
         <img src="ICONO HUARMEY.png" alt="Agrícola Huarmey Logo" class="h-10 w-auto object-contain">
         <div>
           <h1 class="text-xl font-bold text-gray-900 leading-none">Agrícola Huarmey | fundo Frusan</h1>
@@ -37,7 +36,6 @@
         </div>
       </div>
       
-      <!-- Estado de Conexión Directa y Botón Sincronizar -->
       <div class="flex items-center gap-2">
         <div id="connectionStatus" class="flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold bg-gray-100 text-gray-600 border border-gray-200">
           <span class="w-2 h-2 rounded-full bg-gray-400" id="statusDot"></span>
@@ -123,15 +121,12 @@
         <select id="filterMes" onchange="aplicarFiltros()" class="p-2 border rounded-lg text-sm w-full"><option value="">Todos los Meses</option></select>
         <input type="date" id="filterFecha" onchange="aplicarFiltros()" class="p-2 border rounded-lg text-sm w-full">
         
-        <!-- Filtro Selección Múltiple para Alertas -->
         <div class="relative">
           <button type="button" onclick="toggleDropdownAlertas()" class="p-2 border rounded-lg text-sm w-full bg-white text-left flex justify-between items-center focus:outline-none">
             <span id="labelTextAlertas" class="truncate text-gray-700">Todas las Alertas</span>
             <i data-lucide="chevron-down" class="w-4 h-4 text-gray-500"></i>
           </button>
-          <div id="dropdownAlertas" class="hidden absolute z-50 left-0 right-0 mt-1 bg-white border rounded-lg shadow-lg p-2 space-y-1 text-xs">
-            <!-- Renderizado dinámico -->
-          </div>
+          <div id="dropdownAlertas" class="hidden absolute z-50 left-0 right-0 mt-1 bg-white border rounded-lg shadow-lg p-2 space-y-1 text-xs"></div>
         </div>
 
         <select id="filterEstadoAsistencia" onchange="aplicarFiltros()" class="p-2 border rounded-lg text-sm w-full">
@@ -141,11 +136,10 @@
           <option value="FALTA TAREO Y FALTA MARCACION">FALTA TAREO Y MARCACION</option>
         </select>
 
-        <!-- Filtro por Umbral de Faltas -->
         <select id="filterFaltasUmbral" onchange="aplicarFiltros()" class="p-2 border rounded-lg text-sm w-full bg-red-50 text-red-900 border-red-200 font-medium">
           <option value="">Todas las Faltas (Sin Filtro)</option>
-          <option value="3">Mayor a 3 Faltas (> 3)</option>
-          <option value="6">Mayor a 6 Faltas (Dar de baja)</option>
+          <option value="3">Mayor o igual a 3 Faltas (>= 3)</option>
+          <option value="6">Mayor o igual a 6 Faltas (Dar de baja)</option>
         </select>
       </div>
 
@@ -167,16 +161,11 @@
 
       <div class="overflow-x-auto">
         <table class="w-full text-xs text-left border-collapse" id="tablaMatriz">
-          <thead class="bg-gray-50 text-gray-600 uppercase" id="matrizHeader">
-            <!-- Render Dinámico -->
-          </thead>
-          <tbody id="matrizBody" class="divide-y divide-gray-100">
-            <!-- Render Dinámico -->
-          </tbody>
+          <thead class="bg-gray-50 text-gray-600 uppercase" id="matrizHeader"></thead>
+          <tbody id="matrizBody" class="divide-y divide-gray-100"></tbody>
         </table>
       </div>
 
-      <!-- Paginador Matriz -->
       <div class="flex justify-between items-center text-xs text-gray-600 pt-2 border-t border-gray-100">
         <span id="matrizPagInfo">Página 1 de 1</span>
         <div class="flex gap-1">
@@ -217,13 +206,10 @@
               <th class="p-2 border text-center">Sexo</th>
             </tr>
           </thead>
-          <tbody id="tablaDetalle" class="divide-y divide-gray-100">
-            <!-- Render Dinámico -->
-          </tbody>
+          <tbody id="tablaDetalle" class="divide-y divide-gray-100"></tbody>
         </table>
       </div>
 
-      <!-- Paginador Detalle -->
       <div class="flex justify-between items-center text-xs text-gray-600 pt-2 border-t border-gray-100">
         <span id="detallePagInfo">Página 1 de 1</span>
         <div class="flex gap-1">
@@ -407,7 +393,6 @@
       renderTabla(filteredData);
     }
 
-    // CONTEO Y METRICAS CORREGIDAS
     function renderKpis(data) {
       let asistencias = 0, faltas = 0, faltaMarc = 0, faltaTareo = 0, faltaAmbos = 0;
 
@@ -416,7 +401,6 @@
         if (alertaStr === "ASISTIO") asistencias++;
         if (alertaStr === "FALTO") faltas++;
         
-        // Obtención de la propiedad adaptando posibles nombres de clave
         const estadoRaw = item.ESTADO_ASISTENCIA || item["ESTADO ASISTENCIA"] || item.ESTADO_MATRIZ || "";
         const est = estadoRaw.toString().trim().toUpperCase();
 
@@ -549,9 +533,9 @@
         let matchUmbral = true;
         const totalFaltasEmp = faltasMap[item.DNI] || 0;
         if (faltasUmbral === "3") {
-          matchUmbral = totalFaltasEmp > 3;
+          matchUmbral = totalFaltasEmp >= 3;
         } else if (faltasUmbral === "6") {
-          matchUmbral = totalFaltasEmp > 6;
+          matchUmbral = totalFaltasEmp >= 6;
         }
 
         return matchBusqueda && matchSemana && matchMes && matchFecha && matchAlerta && matchEstado && matchUmbral;
@@ -580,7 +564,7 @@
       procesarYRenderizar(dbData);
     }
 
-    // LÓGICA DE ALERTA SEMANAL SOLICITADA
+    // CONTEO Y REGLAS DE ALERTA ACTUALIZADAS (>= 3 FALTAS Y >= 6 DAR DE BAJA)
     function obtenerAlertaEmpleado(dataEmpleado) {
       let totalFaltas = 0;
 
@@ -591,13 +575,12 @@
         }
       });
 
-      if (totalFaltas > 6) {
-        return '<span class="px-2 py-0.5 rounded-full text-[10px] font-bold alert-rojo">DAR DE BAJA</span>';
-      } else if (totalFaltas > 3) {
-        return `<span class="px-2 py-0.5 rounded-full text-[10px] font-bold alert-amarillo">${totalFaltas} FALTAS</span>`;
+      if (totalFaltas >= 6) {
+        return '<span class="px-2 py-0.5 rounded-full text-[10px] font-bold alert-rojo uppercase">DAR DE BAJA</span>';
+      } else if (totalFaltas >= 3) {
+        return `<span class="px-2 py-0.5 rounded-full text-[10px] font-bold alert-amarillo uppercase">${totalFaltas} FALTAS</span>`;
       }
       
-      // Si tiene 3 o menos faltas, se muestra totalmente en blanco
       return '';
     }
 

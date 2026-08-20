@@ -7,23 +7,19 @@
   <link rel="manifest" href="manifest.json">
   <meta name="theme-color" content="#d32f2f">
   
-  <!-- Tailwind CSS, Lucide Icons, Chart.js & SheetJS (Excel) -->
+  <!-- Tailwind CSS, Lucide Icons, Chart.js & SheetJS -->
   <script src="https://cdn.tailwindcss.com"></script>
   <script src="https://unpkg.com/lucide@latest"></script>
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
 
   <style>
-    :root {
-      --color-primary: #d32f2f;
-      --color-secondary: #2e7d32;
-    }
     .badge-asistio { background-color: #dcfce7; color: #15803d; }
     .badge-falto { background-color: #fee2e2; color: #b91c1c; }
     .badge-feriado { background-color: #fef3c7; color: #b45309; }
     .badge-inactivo { background-color: #f3f4f6; color: #4b5563; }
-    .alert-amarillo { background-color: #fef9c3; border-left: 4px solid #eab308; }
-    .alert-rojo { background-color: #fee2e2; border-left: 4px solid #ef4444; }
+    .alert-amarillo { background-color: #fef9c3; color: #854d0e; }
+    .alert-rojo { background-color: #fee2e2; color: #991b1b; }
   </style>
 </head>
 <body class="bg-gray-50 text-gray-800 font-sans pb-10">
@@ -32,7 +28,6 @@
   <header class="bg-white shadow-md sticky top-0 z-50">
     <div class="max-w-7xl mx-auto px-4 py-3 flex justify-between items-center flex-wrap gap-3">
       <div class="flex items-center space-x-3">
-        <!-- Logo SVG Agrícola Huarmey -->
         <svg class="h-10 w-10" viewBox="0 0 100 100">
           <circle cx="50" cy="50" r="45" fill="none" stroke="#2e7d32" stroke-width="4"/>
           <path d="M 30 65 C 30 35, 70 35, 70 65 C 60 75, 40 75, 30 65 Z" fill="#d32f2f"/>
@@ -44,16 +39,12 @@
         </div>
       </div>
       
-      <!-- Estado de Conexión, Configuración URL & Botón Sync -->
+      <!-- Estado de Conexión Directa y Botón Sincronizar -->
       <div class="flex items-center gap-2">
         <div id="connectionStatus" class="flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold bg-gray-100 text-gray-600 border border-gray-200">
           <span class="w-2 h-2 rounded-full bg-gray-400" id="statusDot"></span>
           <span id="statusText">Iniciando...</span>
         </div>
-        
-        <button onclick="toggleConfigModal()" title="Configurar URL de Google Sheets" class="p-2 text-gray-500 hover:text-gray-700 hover:bg-gray-100 rounded-lg transition">
-          <i data-lucide="settings" class="w-4 h-4"></i>
-        </button>
 
         <button id="btnSync" onclick="sincronizarDatos(true)" class="flex items-center gap-1 bg-emerald-600 hover:bg-emerald-700 text-white text-xs px-3 py-2 rounded-lg font-medium shadow-sm transition">
           <i data-lucide="refresh-cw" class="w-4 h-4" id="syncIcon"></i> Sincronizar
@@ -62,31 +53,9 @@
     </div>
   </header>
 
-  <!-- Modal de Configuración de API URL -->
-  <div id="configModal" class="hidden fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-    <div class="bg-white rounded-xl shadow-xl max-w-md w-full p-5 space-y-4">
-      <div class="flex justify-between items-center border-b pb-2">
-        <h3 class="font-bold text-gray-800 flex items-center gap-2">
-          <i data-lucide="link" class="w-4 h-4 text-emerald-600"></i> Configurar Google Sheets API
-        </h3>
-        <button onclick="toggleConfigModal()" class="text-gray-400 hover:text-gray-600">
-          <i data-lucide="x" class="w-5 h-5"></i>
-        </button>
-      </div>
-      <div class="space-y-2 text-xs text-gray-600">
-        <p>Pega aquí la URL de la Aplicación Web generada al desplegar tu código en <strong>Google Apps Script</strong>:</p>
-        <input type="text" id="gasUrlInput" placeholder="https://script.google.com/macros/s/.../exec" class="w-full p-2.5 border rounded-lg text-xs font-mono border-gray-300 focus:ring-2 focus:ring-emerald-500 outline-none">
-      </div>
-      <div class="flex justify-end gap-2 pt-2">
-        <button onclick="toggleConfigModal()" class="px-3 py-1.5 text-xs text-gray-600 hover:bg-gray-100 rounded-lg">Cancelar</button>
-        <button onclick="guardarGasUrl()" class="px-3 py-1.5 text-xs bg-emerald-600 hover:bg-emerald-700 text-white font-medium rounded-lg shadow-sm">Guardar y Conectar</button>
-      </div>
-    </div>
-  </div>
-
   <main class="max-w-7xl mx-auto px-4 mt-6 space-y-6">
 
-    <!-- Tarjetas de Métricas (KPIs) -->
+    <!-- Tarjetas KPI -->
     <div class="grid grid-cols-2 md:grid-cols-5 gap-3">
       <div class="bg-white p-4 rounded-xl shadow-sm border border-gray-100 flex flex-col justify-between">
         <span class="text-xs font-semibold text-gray-500 uppercase">Total Asistencias</span>
@@ -125,33 +94,19 @@
       </div>
     </div>
 
-    <!-- Dashboards Visuales -->
+    <!-- Dashboards -->
     <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
       <div class="bg-white p-4 rounded-xl shadow-sm border border-gray-100">
-        <h3 class="text-sm font-bold text-gray-700 mb-3 flex items-center gap-2">
-          <i data-lucide="users" class="w-4 h-4 text-emerald-600"></i> Distribución por Sexo
-        </h3>
-        <div class="h-44 relative">
-          <canvas id="chartSexo"></canvas>
-        </div>
+        <h3 class="text-sm font-bold text-gray-700 mb-3 flex items-center gap-2"><i data-lucide="users" class="w-4 h-4 text-emerald-600"></i> Distribución por Sexo</h3>
+        <div class="h-44 relative"><canvas id="chartSexo"></canvas></div>
       </div>
-
       <div class="bg-white p-4 rounded-xl shadow-sm border border-gray-100">
-        <h3 class="text-sm font-bold text-gray-700 mb-3 flex items-center gap-2">
-          <i data-lucide="history" class="w-4 h-4 text-emerald-600"></i> Distribución Histórica
-        </h3>
-        <div class="h-44 relative">
-          <canvas id="chartHistorico"></canvas>
-        </div>
+        <h3 class="text-sm font-bold text-gray-700 mb-3 flex items-center gap-2"><i data-lucide="history" class="w-4 h-4 text-emerald-600"></i> Distribución Histórica</h3>
+        <div class="h-44 relative"><canvas id="chartHistorico"></canvas></div>
       </div>
-
       <div class="bg-white p-4 rounded-xl shadow-sm border border-gray-100">
-        <h3 class="text-sm font-bold text-gray-700 mb-3 flex items-center gap-2">
-          <i data-lucide="briefcase" class="w-4 h-4 text-emerald-600"></i> Modalidad Contratación
-        </h3>
-        <div class="h-44 relative">
-          <canvas id="chartModalidad"></canvas>
-        </div>
+        <h3 class="text-sm font-bold text-gray-700 mb-3 flex items-center gap-2"><i data-lucide="briefcase" class="w-4 h-4 text-emerald-600"></i> Modalidad Contratación</h3>
+        <div class="h-44 relative"><canvas id="chartModalidad"></canvas></div>
       </div>
     </div>
 
@@ -159,7 +114,6 @@
     <div class="bg-white p-4 rounded-xl shadow-sm border border-gray-100 space-y-3">
       <div class="flex justify-between items-center">
         <span class="text-xs font-bold text-gray-500 uppercase tracking-wider block">Filtros de Búsqueda</span>
-        <!-- Botón Exportar Excel -->
         <button onclick="exportarExcel()" class="flex items-center gap-1.5 bg-emerald-700 hover:bg-emerald-800 text-white text-xs px-3 py-1.5 rounded-lg font-medium shadow-sm transition">
           <i data-lucide="file-spreadsheet" class="w-4 h-4"></i> Exportar a Excel
         </button>
@@ -184,43 +138,62 @@
       </div>
 
       <div class="flex items-center gap-2 pt-2 border-t border-gray-100 flex-wrap">
-        <span class="text-xs font-semibold text-gray-600">Inasistencias Acumuladas:</span>
-        <button onclick="filtrarFaltasSemana(3)" class="text-xs bg-amber-100 text-amber-800 font-medium px-2.5 py-1 rounded-md hover:bg-amber-200"> > 3 Faltas/Semana</button>
-        <button onclick="filtrarFaltasSemana(6)" class="text-xs bg-red-100 text-red-800 font-medium px-2.5 py-1 rounded-md hover:bg-red-200">6 Faltas/Semana (Eliminar)</button>
         <button onclick="limpiarFiltros()" class="text-xs bg-gray-100 text-gray-600 font-medium px-2.5 py-1 rounded-md hover:bg-gray-200 ml-auto">Limpiar Filtros</button>
       </div>
     </div>
 
-    <!-- Vista Matrix: DNI vs FECHA INDICE -->
-    <div class="bg-white p-4 rounded-xl shadow-sm border border-gray-100 overflow-hidden">
-      <h3 class="text-sm font-bold text-gray-700 mb-3 flex items-center gap-2">
-        <i data-lucide="calendar" class="w-4 h-4 text-emerald-600"></i> Matriz de Asistencia Individual por Fecha
-      </h3>
+    <!-- 1. Matriz de Asistencia Individual por Fecha -->
+    <div class="bg-white p-4 rounded-xl shadow-sm border border-gray-100 overflow-hidden space-y-3">
+      <div class="flex justify-between items-center flex-wrap gap-2">
+        <h3 class="text-sm font-bold text-gray-700 flex items-center gap-2">
+          <i data-lucide="calendar" class="w-4 h-4 text-emerald-600"></i> Matriz de Asistencia Individual por Fecha
+        </h3>
+        <button onclick="toggleSortMatriz()" class="text-xs bg-gray-100 hover:bg-gray-200 text-gray-700 px-3 py-1.5 rounded-lg flex items-center gap-1 font-medium transition">
+          <i data-lucide="arrow-up-down" class="w-3.5 h-3.5"></i> Ordenar Nombres (<span id="matrizSortLabel">A-Z</span>)
+        </button>
+      </div>
+
       <div class="overflow-x-auto">
-        <table class="w-full text-xs text-left" id="tablaMatriz">
+        <table class="w-full text-xs text-left border-collapse" id="tablaMatriz">
           <thead class="bg-gray-50 text-gray-600 uppercase">
             <tr id="matrizHeader">
-              <th class="p-2 border">DNI / Personal</th>
+              <!-- Render Dinámico -->
             </tr>
           </thead>
           <tbody id="matrizBody" class="divide-y divide-gray-100">
-            <!-- Render dinámico -->
+            <!-- Render Dinámico -->
           </tbody>
         </table>
       </div>
+
+      <!-- Paginador Matriz -->
+      <div class="flex justify-between items-center text-xs text-gray-600 pt-2 border-t border-gray-100">
+        <span id="matrizPagInfo">Página 1 de 1</span>
+        <div class="flex gap-1">
+          <button onclick="cambiarPaginaMatriz(-1)" id="btnMatrizPrev" class="px-3 py-1 bg-gray-100 hover:bg-gray-200 rounded-md font-medium disabled:opacity-50">Anterior</button>
+          <button onclick="cambiarPaginaMatriz(1)" id="btnMatrizNext" class="px-3 py-1 bg-gray-100 hover:bg-gray-200 rounded-md font-medium disabled:opacity-50">Siguiente</button>
+        </div>
+      </div>
     </div>
 
-    <!-- Tabla General de Registro -->
-    <div class="bg-white p-4 rounded-xl shadow-sm border border-gray-100 overflow-hidden">
-      <h3 class="text-sm font-bold text-gray-700 mb-3 flex items-center gap-2">
-        <i data-lucide="table" class="w-4 h-4 text-emerald-600"></i> Detalle Completo de Registros
-      </h3>
+    <!-- 2. Detalle Completo de Registros -->
+    <div class="bg-white p-4 rounded-xl shadow-sm border border-gray-100 overflow-hidden space-y-3">
+      <div class="flex justify-between items-center flex-wrap gap-2">
+        <h3 class="text-sm font-bold text-gray-700 flex items-center gap-2">
+          <i data-lucide="table" class="w-4 h-4 text-emerald-600"></i> Detalle Completo de Registros
+        </h3>
+        <button onclick="toggleSortDetalle()" class="text-xs bg-gray-100 hover:bg-gray-200 text-gray-700 px-3 py-1.5 rounded-lg flex items-center gap-1 font-medium transition">
+          <i data-lucide="arrow-up-down" class="w-3.5 h-3.5"></i> Ordenar Nombres (<span id="detalleSortLabel">A-Z</span>)
+        </button>
+      </div>
+
       <div class="overflow-x-auto">
         <table class="w-full text-xs text-left border-collapse">
           <thead class="bg-gray-100 text-gray-700 font-semibold uppercase">
             <tr>
               <th class="p-2 border">DNI</th>
               <th class="p-2 border">Apellidos y Nombres</th>
+              <th class="p-2 border">Alerta Faltas</th>
               <th class="p-2 border">Sem.</th>
               <th class="p-2 border">Mes</th>
               <th class="p-2 border">Día</th>
@@ -235,62 +208,66 @@
             </tr>
           </thead>
           <tbody id="tablaDetalle" class="divide-y divide-gray-100">
-            <!-- Render dinámico -->
+            <!-- Render Dinámico -->
           </tbody>
         </table>
+      </div>
+
+      <!-- Paginador Detalle -->
+      <div class="flex justify-between items-center text-xs text-gray-600 pt-2 border-t border-gray-100">
+        <span id="detallePagInfo">Página 1 de 1</span>
+        <div class="flex gap-1">
+          <button onclick="cambiarPaginaDetalle(-1)" id="btnDetallePrev" class="px-3 py-1 bg-gray-100 hover:bg-gray-200 rounded-md font-medium disabled:opacity-50">Anterior</button>
+          <button onclick="cambiarPaginaDetalle(1)" id="btnDetalleNext" class="px-3 py-1 bg-gray-100 hover:bg-gray-200 rounded-md font-medium disabled:opacity-50">Siguiente</button>
+        </div>
       </div>
     </div>
 
   </main>
 
   <script>
-    // URL por defecto (Se guardará en localStorage)
-    let gasUrl = localStorage.getItem("AH_GAS_URL") || "";
+    // Link Directo de Google Apps Script
+    const gasUrl = "https://script.google.com/macros/s/AKfycbwBM7oIzoPih-jFPRV9KjLgiGyijEgl-giJsxCvajRlgGrDpLiEjrOn3WCzOOCKINIC/exec";
+    
     let dbData = [];
     let filteredData = [];
     let charts = {};
 
-    // Inicialización de la Aplicación
+    // Paginación y Orden (100 por página)
+    const PAGE_SIZE = 100;
+    let pagMatriz = 1;
+    let sortMatrizAsc = true;
+
+    let pagDetalle = 1;
+    let sortDetalleAsc = true;
+
     document.addEventListener("DOMContentLoaded", async () => {
       lucide.createIcons();
-      document.getElementById("gasUrlInput").value = gasUrl;
-
       await initDB();
       await cargarDatosLocal();
-      
-      if (!gasUrl) {
-        setConnectionStatus("offline", "Falta Configurar URL");
-        toggleConfigModal();
-      } else {
-        sincronizarDatos();
-      }
+      sincronizarDatos();
 
       if ('serviceWorker' in navigator) {
         navigator.serviceWorker.register('service-worker.js');
       }
     });
 
-    function toggleConfigModal() {
-      const modal = document.getElementById("configModal");
-      modal.classList.toggle("hidden");
-    }
-
-    function guardarGasUrl() {
-      const val = document.getElementById("gasUrlInput").value.trim();
-      if(val) {
-        gasUrl = val;
-        localStorage.setItem("AH_GAS_URL", gasUrl);
-        toggleConfigModal();
-        sincronizarDatos(true);
-      } else {
-        alert("Ingresa una URL válida de Google Apps Script.");
+    // Formateador de Fecha: YYYY-MM-DD -> dd/mm/yy
+    function formatFechaShort(fechaStr) {
+      if (!fechaStr) return "";
+      const clean = fechaStr.toString().split("T")[0];
+      const parts = clean.split("-");
+      if (parts.length === 3) {
+        const yy = parts[0].slice(-2);
+        return `${parts[2]}/${parts[1]}/${yy}`;
       }
+      return fechaStr;
     }
 
-    // Configuración IndexedDB (Offline Storage)
+    // Configuración IndexedDB
     function initDB() {
       return new Promise((resolve, reject) => {
-        const request = indexedDB.open("AgricolaHuarmeyDB", 1);
+        const request = indexedDB.open("AgricolaHuarmeyDB", 2);
         request.onupgradeneeded = (e) => {
           const db = e.target.result;
           if (!db.objectStoreNames.contains("asistencia")) {
@@ -326,7 +303,6 @@
       });
     }
 
-    // Alerta / Indicador de Conexión
     function setConnectionStatus(status, message) {
       const box = document.getElementById("connectionStatus");
       const dot = document.getElementById("statusDot");
@@ -347,20 +323,13 @@
       }
     }
 
-    // Sincronización mediante Fetch con manejo completo de CORS y Redirecciones
+    // Sincronización Directa
     async function sincronizarDatos(manual = false) {
-      if (!gasUrl) {
-        setConnectionStatus("offline", "URL no configurada");
-        if(manual) toggleConfigModal();
-        return;
-      }
-
       setConnectionStatus("connecting", "Sincronizando...");
       const icon = document.getElementById("syncIcon");
       if(icon) icon.classList.add("animate-spin");
 
       try {
-        // Redirección HTTP 302 explícita para Google Apps Script
         const response = await fetch(gasUrl, {
           method: 'GET',
           mode: 'cors',
@@ -368,9 +337,7 @@
           headers: { 'Accept': 'application/json' }
         });
 
-        if (!response.ok) {
-          throw new Error(`HTTP Error Status: ${response.status}`);
-        }
+        if (!response.ok) throw new Error(`Status HTTP: ${response.status}`);
 
         const json = await response.json();
 
@@ -380,22 +347,23 @@
           procesarYRenderizar(dbData);
           setConnectionStatus("online", "Conectado a Google Sheets");
         } else {
-          throw new Error(json.message || "Estructura de respuesta no válida");
+          throw new Error(json.message || "Error en datos devueltos");
         }
       } catch (err) {
-        console.error("Error en sincronización con Google Sheets:", err);
+        console.error("Error en conexión:", err);
         setConnectionStatus("offline", dbData.length > 0 ? "Sin Conexión (Usando Local)" : "Sin Conexión");
       } finally {
         if(icon) icon.classList.remove("animate-spin");
       }
     }
 
-    // Procesamiento y Renderizado General
     function procesarYRenderizar(data) {
       filteredData = [...data];
       poblarFiltros(data);
       renderKpis(filteredData);
       renderCharts(filteredData);
+      pagMatriz = 1;
+      pagDetalle = 1;
       renderMatriz(filteredData);
       renderTabla(filteredData);
     }
@@ -480,27 +448,8 @@
 
       renderKpis(filteredData);
       renderCharts(filteredData);
-      renderMatriz(filteredData);
-      renderTabla(filteredData);
-    }
-
-    function filtrarFaltasSemana(limite) {
-      const contadorFaltas = {};
-      dbData.forEach(i => {
-        if(i.ALERTA === "FALTO") {
-          const key = `${i.DNI}_${i.SEMANA}`;
-          contadorFaltas[key] = (contadorFaltas[key] || 0) + 1;
-        }
-      });
-
-      filteredData = dbData.filter(i => {
-        const key = `${i.DNI}_${i.SEMANA}`;
-        const faltas = contadorFaltas[key] || 0;
-        return limite === 3 ? (faltas > 3 && faltas < 6) : faltas >= 6;
-      });
-
-      renderKpis(filteredData);
-      renderCharts(filteredData);
+      pagMatriz = 1;
+      pagDetalle = 1;
       renderMatriz(filteredData);
       renderTabla(filteredData);
     }
@@ -515,10 +464,178 @@
       procesarYRenderizar(dbData);
     }
 
+    // --- LÓGICA DE LA MATRIZ ---
+    function toggleSortMatriz() {
+      sortMatrizAsc = !sortMatrizAsc;
+      document.getElementById("matrizSortLabel").innerText = sortMatrizAsc ? "A-Z" : "Z-A";
+      renderMatriz(filteredData);
+    }
+
+    function cambiarPaginaMatriz(dir) {
+      pagMatriz += dir;
+      renderMatriz(filteredData);
+    }
+
+    function renderMatriz(data) {
+      const fechas = [...new Set(data.map(i => i.FECHA_INDICE))].filter(Boolean).sort();
+      
+      // Obtener Empleados Únicos
+      let empleadosMap = {};
+      data.forEach(i => {
+        if (!empleadosMap[i.DNI]) {
+          empleadosMap[i.DNI] = { dni: i.DNI, nombre: i.APELLIDOS_NOMBRES || "" };
+        }
+      });
+      let empleados = Object.values(empleadosMap);
+
+      // Ordenar Alfabéticamente
+      empleados.sort((a, b) => {
+        return sortMatrizAsc ? a.nombre.localeCompare(b.nombre) : b.nombre.localeCompare(a.nombre);
+      });
+
+      // Paginación 100 por página
+      const totalPaginas = Math.ceil(empleados.length / PAGE_SIZE) || 1;
+      if (pagMatriz < 1) pagMatriz = 1;
+      if (pagMatriz > totalPaginas) pagMatriz = totalPaginas;
+
+      const inicio = (pagMatriz - 1) * PAGE_SIZE;
+      const empleadosPagina = empleados.slice(inicio, inicio + PAGE_SIZE);
+
+      document.getElementById("matrizPagInfo").innerText = `Página ${pagMatriz} de ${totalPaginas} (${empleados.length} Registros)`;
+      document.getElementById("btnMatrizPrev").disabled = pagMatriz === 1;
+      document.getElementById("btnMatrizNext").disabled = pagMatriz === totalPaginas;
+
+      // Encabezados con fecha en dd/mm/yy
+      const headerRow = document.getElementById("matrizHeader");
+      headerRow.innerHTML = `
+        <th class="p-2 border bg-gray-100">DNI</th>
+        <th class="p-2 border bg-gray-100">Apellidos y Nombres</th>
+        ${fechas.map(f => `<th class="p-2 border bg-gray-100 text-center font-mono">${formatFechaShort(f)}</th>`).join("")}
+        <th class="p-2 border bg-gray-100 text-center">Tot. Asistió</th>
+        <th class="p-2 border bg-gray-100 text-center">Tot. Faltó</th>
+        <th class="p-2 border bg-gray-100 text-center">Alerta Semanal</th>
+      `;
+
+      // Filas de Datos
+      const body = document.getElementById("matrizBody");
+      body.innerHTML = empleadosPagina.map(emp => {
+        let totAsistio = 0;
+        let totFalto = 0;
+
+        const celdasFechas = fechas.map(f => {
+          const reg = data.find(d => d.DNI === emp.dni && d.FECHA_INDICE === f);
+          const estado = reg ? reg.ESTADO_MATRIZ || (reg.ALERTA === "ASISTIO" ? "ASISTIO" : "FALTO") : "INACTIVO";
+          
+          if (estado === "ASISTIO") totAsistio++;
+          if (estado === "FALTO") totFalto++;
+
+          let badgeClass = "badge-inactivo";
+          if (estado === "ASISTIO") badgeClass = "badge-asistio";
+          if (estado === "FALTO") badgeClass = "badge-falto";
+          if (estado === "FERIADO") badgeClass = "badge-feriado";
+
+          return `<td class="p-2 border text-center"><span class="px-2 py-0.5 rounded-full text-[10px] font-bold ${badgeClass}">${estado}</span></td>`;
+        }).join("");
+
+        // Alerta semanal (>3 Faltas = Amarillo, 6 Faltas = Rojo/Eliminar)
+        let maxFaltasSemana = Math.max(...data.filter(d => d.DNI === emp.dni).map(d => d.FALTAS_SEMANA || 0), 0);
+        let alertaBadge = '<span class="text-gray-400">-</span>';
+        
+        if (maxFaltasSemana >= 6) {
+          alertaBadge = '<span class="px-2 py-0.5 rounded-full text-[10px] font-bold alert-rojo">ELIMINAR (6 Faltas)</span>';
+        } else if (maxFaltasSemana > 3) {
+          alertaBadge = '<span class="px-2 py-0.5 rounded-full text-[10px] font-bold alert-amarillo">> 3 Faltas</span>';
+        }
+
+        return `
+          <tr class="hover:bg-gray-50">
+            <td class="p-2 border font-mono font-medium">${emp.dni}</td>
+            <td class="p-2 border font-medium">${emp.nombre}</td>
+            ${celdasFechas}
+            <td class="p-2 border text-center font-bold text-emerald-700 bg-emerald-50/50">${totAsistio}</td>
+            <td class="p-2 border text-center font-bold text-red-700 bg-red-50/50">${totFalto}</td>
+            <td class="p-2 border text-center">${alertaBadge}</td>
+          </tr>
+        `;
+      }).join("");
+    }
+
+    // --- LÓGICA DE DETALLE COMPLETO DE REGISTROS ---
+    function toggleSortDetalle() {
+      sortDetalleAsc = !sortDetalleAsc;
+      document.getElementById("detalleSortLabel").innerText = sortDetalleAsc ? "A-Z" : "Z-A";
+      renderTabla(filteredData);
+    }
+
+    function cambiarPaginaDetalle(dir) {
+      pagDetalle += dir;
+      renderTabla(filteredData);
+    }
+
+    function renderTabla(data) {
+      let dataOrdenada = [...data];
+
+      // Ordenar Alfabéticamente por Apellidos y Nombres
+      dataOrdenada.sort((a, b) => {
+        const nameA = a.APELLIDOS_NOMBRES || "";
+        const nameB = b.APELLIDOS_NOMBRES || "";
+        return sortDetalleAsc ? nameA.localeCompare(nameB) : nameB.localeCompare(nameA);
+      });
+
+      // Paginación 100 por página
+      const totalPaginas = Math.ceil(dataOrdenada.length / PAGE_SIZE) || 1;
+      if (pagDetalle < 1) pagDetalle = 1;
+      if (pagDetalle > totalPaginas) pagDetalle = totalPaginas;
+
+      const inicio = (pagDetalle - 1) * PAGE_SIZE;
+      const dataPagina = dataOrdenada.slice(inicio, inicio + PAGE_SIZE);
+
+      document.getElementById("detallePagInfo").innerText = `Página ${pagDetalle} de ${totalPaginas} (${dataOrdenada.length} Registros)`;
+      document.getElementById("btnDetallePrev").disabled = pagDetalle === 1;
+      document.getElementById("btnDetalleNext").disabled = pagDetalle === totalPaginas;
+
+      const tbody = document.getElementById("tablaDetalle");
+      tbody.innerHTML = dataPagina.map(item => {
+        // Alerta de faltas acumuladas/consecutivas
+        const faltasSem = item.FALTAS_SEMANA || 0;
+        const faltasCons = item.FALTAS_CONSECUTIVAS || 0;
+        let alertaFaltasBadge = '<span class="text-gray-400">-</span>';
+
+        if (faltasSem >= 6 || faltasCons >= 6) {
+          alertaFaltasBadge = '<span class="px-2 py-0.5 rounded-full text-[10px] font-bold alert-rojo">6 Faltas Consecutivas / Eliminar</span>';
+        } else if (faltasSem > 3 || faltasCons > 3) {
+          alertaFaltasBadge = '<span class="px-2 py-0.5 rounded-full text-[10px] font-bold alert-amarillo">> 3 Faltas</span>';
+        }
+
+        return `
+          <tr class="hover:bg-gray-50">
+            <td class="p-2 border font-mono">${item.DNI || ''}</td>
+            <td class="p-2 border font-medium">${item.APELLIDOS_NOMBRES || ''}</td>
+            <td class="p-2 border text-center">${alertaFaltasBadge}</td>
+            <td class="p-2 border text-center">${item.SEMANA || ''}</td>
+            <td class="p-2 border text-center">${item.MES || ''}</td>
+            <td class="p-2 border text-center">${item.DIA || ''}</td>
+            <td class="p-2 border text-center font-mono">${formatFechaShort(item.FECHA_INDICE)}</td>
+            <td class="p-2 border text-center">
+              <span class="px-2 py-0.5 rounded-md text-[10px] font-bold ${item.ALERTA === 'ASISTIO' ? 'bg-emerald-100 text-emerald-800' : 'bg-red-100 text-red-800'}">
+                ${item.ALERTA || ''}
+              </span>
+            </td>
+            <td class="p-2 border">${item.ESTADO_ASISTENCIA || ''}</td>
+            <td class="p-2 border">${item.HISTORICO || ''}</td>
+            <td class="p-2 border">${item.MODALIDAD || ''}</td>
+            <td class="p-2 border font-mono">${item.PLACA || ''}</td>
+            <td class="p-2 border">${item.RUTA || ''}</td>
+            <td class="p-2 border text-center">${item.SEXO || ''}</td>
+          </tr>
+        `;
+      }).join("");
+    }
+
     // Exportar a Excel
     function exportarExcel() {
       if (!filteredData || filteredData.length === 0) {
-        alert("No hay registros disponibles para exportar.");
+        alert("No hay registros para exportar.");
         return;
       }
 
@@ -528,7 +645,7 @@
         "Semana": item.SEMANA,
         "Mes": item.MES,
         "Día": item.DIA,
-        "Fecha Índice": item.FECHA_INDICE,
+        "Fecha Índice": formatFechaShort(item.FECHA_INDICE),
         "Alerta": item.ALERTA,
         "Estado Asistencia": item.ESTADO_ASISTENCIA,
         "Histórico": item.HISTORICO,
@@ -545,64 +662,6 @@
 
       const hoy = new Date().toISOString().split('T')[0];
       XLSX.writeFile(workbook, `Reporte_Huarmey_${hoy}.xlsx`);
-    }
-
-    // Render Tabla Matriz por FECHA_INDICE
-    function renderMatriz(data) {
-      const fechas = [...new Set(data.map(i => i.FECHA_INDICE))].filter(Boolean).sort();
-      const empleados = [...new Set(data.map(i => JSON.stringify({ dni: i.DNI, nombre: i.APELLIDOS_NOMBRES })))].map(i => JSON.parse(i));
-
-      const headerRow = document.getElementById("matrizHeader");
-      headerRow.innerHTML = '<th class="p-2 border bg-gray-100">DNI / Personal</th>' + fechas.map(f => `<th class="p-2 border bg-gray-100 text-center">${f}</th>`).join("");
-
-      const body = document.getElementById("matrizBody");
-      body.innerHTML = empleados.map(emp => {
-        const celdasFechas = fechas.map(f => {
-          const reg = data.find(d => d.DNI === emp.dni && d.FECHA_INDICE === f);
-          const estado = reg ? reg.ESTADO_MATRIZ || (reg.ALERTA === "ASISTIO" ? "ASISTIO" : "FALTO") : "INACTIVO";
-          
-          let badgeClass = "badge-inactivo";
-          if (estado === "ASISTIO") badgeClass = "badge-asistio";
-          if (estado === "FALTO") badgeClass = "badge-falto";
-          if (estado === "FERIADO") badgeClass = "badge-feriado";
-
-          return `<td class="p-2 border text-center"><span class="px-2 py-0.5 rounded-full text-[10px] font-bold ${badgeClass}">${estado}</span></td>`;
-        }).join("");
-
-        return `<tr><td class="p-2 border font-medium">${emp.dni} - ${emp.nombre}</td>${celdasFechas}</tr>`;
-      }).join("");
-    }
-
-    // Render Tabla Detalle
-    function renderTabla(data) {
-      const tbody = document.getElementById("tablaDetalle");
-      tbody.innerHTML = data.map(item => {
-        let alertClass = "";
-        if (item.FALTAS_SEMANA > 3 && item.FALTAS_SEMANA < 6) alertClass = "alert-amarillo";
-        if (item.FALTAS_SEMANA >= 6) alertClass = "alert-rojo";
-
-        return `
-          <tr class="${alertClass} hover:bg-gray-50">
-            <td class="p-2 border font-mono">${item.DNI || ''}</td>
-            <td class="p-2 border font-medium">${item.APELLIDOS_NOMBRES || ''}</td>
-            <td class="p-2 border text-center">${item.SEMANA || ''}</td>
-            <td class="p-2 border text-center">${item.MES || ''}</td>
-            <td class="p-2 border text-center">${item.DIA || ''}</td>
-            <td class="p-2 border text-center font-mono">${item.FECHA_INDICE || ''}</td>
-            <td class="p-2 border text-center">
-              <span class="px-2 py-0.5 rounded-md text-[10px] font-bold ${item.ALERTA === 'ASISTIO' ? 'bg-emerald-100 text-emerald-800' : 'bg-red-100 text-red-800'}">
-                ${item.ALERTA || ''}
-              </span>
-            </td>
-            <td class="p-2 border">${item.ESTADO_ASISTENCIA || ''}</td>
-            <td class="p-2 border">${item.HISTORICO || ''}</td>
-            <td class="p-2 border">${item.MODALIDAD || ''}</td>
-            <td class="p-2 border font-mono">${item.PLACA || ''}</td>
-            <td class="p-2 border">${item.RUTA || ''}</td>
-            <td class="p-2 border text-center">${item.SEXO || ''}</td>
-          </tr>
-        `;
-      }).join("");
     }
   </script>
 </body>

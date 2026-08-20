@@ -2,860 +2,551 @@
 <html lang="es">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Agrícola Huarmey - Control de Asistencia</title>
-    
-    <!-- PWA Meta Tags -->
     <link rel="manifest" href="manifest.json">
-    <meta name="theme-color" content="#C8102E">
-    <meta name="apple-mobile-web-app-capable" content="yes">
-    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-    <link rel="apple-touch-icon" href="ICONO HUARMEY.png">
-
-    <!-- Styles & Fonts -->
-    <script src="https://cdn.tailwindcss.com"></script>
+    <meta name="theme-color" content="#d92b21">
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-
-    <script>
-        tailwind.config = {
-            theme: {
-                extend: {
-                    colors: {
-                        agriRed: {
-                            DEFAULT: '#C8102E',
-                            dark: '#A00C23',
-                            light: '#FFF0F2'
-                        },
-                        agriGreen: {
-                            DEFAULT: '#2E7D32',
-                            light: '#E8F5E9',
-                            soft: '#A5D6A7'
-                        }
-                    }
-                }
-            }
-        }
-    </script>
-    
     <style>
+        :root {
+            --primary-red: #d92b21;
+            --primary-green: #2e7d32;
+            --light-green: #e8f5e9;
+            --bg-light: #f4f6f8;
+            --card-bg: #ffffff;
+            --text-main: #2c3e50;
+            --alert-yellow: #f1c40f;
+            --alert-red: #e74c3c;
+        }
+
         body {
-            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
-            background-color: #F8FAFC;
-            -webkit-tap-highlight-color: transparent;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            margin: 0;
+            padding: 0;
+            background-color: var(--bg-light);
+            color: var(--text-main);
         }
-        .table-sticky-col {
-            position: sticky;
-            left: 0;
-            background-color: white;
-            z-index: 10;
+
+        header {
+            background-color: var(--card-bg);
+            padding: 12px 20px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+            border-bottom: 3px solid var(--primary-green);
         }
-        .no-scrollbar::-webkit-scrollbar {
-            display: none;
+
+        .brand-container {
+            display: flex;
+            align-items: center;
+            gap: 12px;
         }
-        .no-scrollbar {
-            -ms-overflow-style: none;
-            scrollbar-width: none;
+
+        .brand-logo {
+            height: 45px;
+            width: auto;
         }
+
+        .brand-title {
+            font-size: 1.2rem;
+            font-weight: bold;
+            color: var(--primary-red);
+        }
+
+        .status-badge {
+            padding: 6px 12px;
+            border-radius: 20px;
+            font-size: 0.85rem;
+            font-weight: 600;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .status-online { background-color: #e8f5e9; color: #2e7d32; }
+        .status-offline { background-color: #ffebee; color: #c62828; }
+
+        .container {
+            padding: 15px;
+            max-width: 1400px;
+            margin: auto;
+        }
+
+        /* Metric Cards */
+        .metrics-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 12px;
+            margin-bottom: 20px;
+        }
+
+        .metric-card {
+            background: var(--card-bg);
+            padding: 15px;
+            border-radius: 10px;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.05);
+            border-left: 5px solid var(--primary-red);
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+        }
+
+        .metric-card.green { border-left-color: var(--primary-green); }
+        .metric-card.yellow { border-left-color: var(--alert-yellow); }
+
+        .metric-title {
+            font-size: 0.8rem;
+            text-transform: uppercase;
+            color: #666;
+            font-weight: bold;
+        }
+
+        .metric-value {
+            font-size: 1.8rem;
+            font-weight: bold;
+            margin-top: 8px;
+            color: var(--text-main);
+        }
+
+        /* Charts */
+        .dashboard-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 15px;
+            margin-bottom: 20px;
+        }
+
+        .chart-card {
+            background: var(--card-bg);
+            padding: 15px;
+            border-radius: 10px;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.05);
+        }
+
+        /* Filters */
+        .filter-section {
+            background: var(--card-bg);
+            padding: 15px;
+            border-radius: 10px;
+            margin-bottom: 20px;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.05);
+        }
+
+        .filter-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            gap: 10px;
+        }
+
+        .form-control {
+            width: 100%;
+            padding: 8px 12px;
+            border: 1px solid #ccc;
+            border-radius: 6px;
+            box-sizing: border-box;
+            font-size: 0.9rem;
+        }
+
+        /* Tables */
+        .table-container {
+            background: var(--card-bg);
+            padding: 15px;
+            border-radius: 10px;
+            overflow-x: auto;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.05);
+            margin-bottom: 20px;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 0.85rem;
+            text-align: left;
+        }
+
+        th, td {
+            padding: 10px 12px;
+            border-bottom: 1px solid #eee;
+            white-space: nowrap;
+        }
+
+        th {
+            background-color: var(--light-green);
+            color: var(--primary-green);
+            font-weight: bold;
+        }
+
+        .badge-status {
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-weight: bold;
+            font-size: 0.75rem;
+        }
+
+        .badge-asistio { background-color: #d4edda; color: #155724; }
+        .badge-falto { background-color: #f8d7da; color: #721c24; }
+        .badge-feriado { background-color: #d1ecf1; color: #0c5460; }
+        .badge-inactivo { background-color: #e2e3e5; color: #383d41; }
+
+        .row-warning-yellow { background-color: #fff3cd !important; }
+        .row-warning-red { background-color: #f8d7da !important; }
+
+        .btn-sync {
+            background-color: var(--primary-green);
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-weight: bold;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            margin-bottom: 15px;
+        }
+
+        .btn-sync:hover { opacity: 0.9; }
     </style>
 </head>
-<body class="text-slate-800 pb-20">
+<body>
 
-    <!-- Header Principal -->
-    <header class="bg-agriRed text-white shadow-md sticky top-0 z-50">
-        <div class="max-w-7xl mx-auto px-4 py-3 flex items-center justify-between">
-            <div class="flex items-center space-x-3">
-                <img src="ICONO HUARMEY.png" alt="Agrícola Huarmey" class="h-10 w-auto bg-white rounded-lg p-1 shadow-sm" onerror="this.src='data:image/svg+xml;utf8,<svg xmlns=\'http://www.w3.org/2000/svg\' viewBox=\'0 0 100 100\'><circle cx=\'50\' cy=\'50\' r=\'45\' fill=\'%232E7D32\'/><text x=\'50\' y=\'55\' font-size=\'30\' fill=\'white\' text-anchor=\'middle\'>AH</text></svg>'">
-                <div>
-                    <h1 class="font-bold text-lg leading-tight">Agrícola Huarmey</h1>
-                    <p class="text-xs text-agriRed-light opacity-90">Control de Asistencia - Cosecha</p>
-                </div>
-            </div>
-            
-            <!-- Estado de Conexión / Sync -->
-            <div class="flex items-center space-x-2">
-                <button onclick="syncData()" id="btnSync" class="bg-white/20 hover:bg-white/30 text-white text-xs px-3 py-1.5 rounded-full flex items-center gap-1.5 backdrop-blur-sm transition">
-                    <i id="syncIcon" class="fas fa-sync-alt"></i>
-                    <span id="pendingBadge" class="bg-yellow-400 text-slate-900 font-bold rounded-full px-1.5 py-0.2 text-[10px] hidden">0</span>
-                </button>
-                <div id="connectionStatus" class="flex items-center gap-1 text-xs px-2 py-1 rounded-full bg-agriGreen text-white">
-                    <span class="w-2 h-2 rounded-full bg-emerald-300 animate-pulse"></span>
-                    <span id="statusText">Online</span>
-                </div>
-            </div>
+    <header>
+        <div class="brand-container">
+            <i class="fa-solid fa-leaf" style="color: var(--primary-green); font-size: 1.8rem;"></i>
+            <span class="brand-title">Agrícola Huarmey</span>
+        </div>
+        <div id="connectionStatus" class="status-badge status-online">
+            <i class="fa-solid fa-wifi"></i> <span>En línea</span>
         </div>
     </header>
 
-    <main class="max-w-7xl mx-auto px-3 sm:px-6 py-4 space-y-6">
+    <div class="container">
+        
+        <button id="syncBtn" class="btn-sync" onclick="syncData()">
+            <i class="fa-solid fa-rotate"></i> Sincronizar con Google Sheets
+        </button>
 
-        <!-- 🎯 OBJETIVO: TARJETAS KPI (METRICAS PRINCIPALES) -->
-        <section class="grid grid-cols-2 md:grid-cols-5 gap-3">
-            <div class="bg-white p-3.5 rounded-xl border border-emerald-100 shadow-sm flex flex-col justify-between border-l-4 border-l-agriGreen">
-                <div class="flex justify-between items-start text-emerald-700">
-                    <span class="text-xs font-semibold uppercase tracking-wider">Asistencia</span>
-                    <i class="fas fa-user-check text-lg"></i>
-                </div>
-                <div class="mt-2">
-                    <span id="kpiAsistio" class="text-2xl font-black text-slate-800">0</span>
-                    <span class="text-[11px] text-slate-500 block">Personal presente</span>
-                </div>
+        <!-- KPI Cards -->
+        <div class="metrics-grid">
+            <div class="metric-card green">
+                <span class="metric-title">Total Asistencias</span>
+                <span id="kpiAsistencias" class="metric-value">0</span>
             </div>
-
-            <div class="bg-white p-3.5 rounded-xl border border-red-100 shadow-sm flex flex-col justify-between border-l-4 border-l-agriRed">
-                <div class="flex justify-between items-start text-agriRed">
-                    <span class="text-xs font-semibold uppercase tracking-wider">Total Faltas</span>
-                    <i class="fas fa-user-times text-lg"></i>
-                </div>
-                <div class="mt-2">
-                    <span id="kpiFalto" class="text-2xl font-black text-slate-800">0</span>
-                    <span class="text-[11px] text-slate-500 block">Alerta: FALTO</span>
-                </div>
+            <div class="metric-card">
+                <span class="metric-title">Faltas (Alerta)</span>
+                <span id="kpiFaltas" class="metric-value">0</span>
             </div>
-
-            <div class="bg-white p-3.5 rounded-xl border border-amber-100 shadow-sm flex flex-col justify-between border-l-4 border-l-amber-500">
-                <div class="flex justify-between items-start text-amber-600">
-                    <span class="text-xs font-semibold uppercase tracking-wider">Falta Marcación</span>
-                    <i class="fas fa-clock text-lg"></i>
-                </div>
-                <div class="mt-2">
-                    <span id="kpiFaltaMarcacion" class="text-2xl font-black text-slate-800">0</span>
-                    <span class="text-[11px] text-slate-500 block">Sin marcado</span>
-                </div>
+            <div class="metric-card yellow">
+                <span class="metric-title">Falta Marcación</span>
+                <span id="kpiFaltaMarcacion" class="metric-value">0</span>
             </div>
-
-            <div class="bg-white p-3.5 rounded-xl border border-orange-100 shadow-sm flex flex-col justify-between border-l-4 border-l-orange-500">
-                <div class="flex justify-between items-start text-orange-600">
-                    <span class="text-xs font-semibold uppercase tracking-wider">Falta Tareo</span>
-                    <i class="fas fa-clipboard-list text-lg"></i>
-                </div>
-                <div class="mt-2">
-                    <span id="kpiFaltaTareo" class="text-2xl font-black text-slate-800">0</span>
-                    <span class="text-[11px] text-slate-500 block">Sin campo registrado</span>
-                </div>
+            <div class="metric-card yellow">
+                <span class="metric-title">Falta Tareo</span>
+                <span id="kpiFaltaTareo" class="metric-value">0</span>
             </div>
-
-            <div class="bg-white p-3.5 rounded-xl border border-purple-100 shadow-sm col-span-2 md:col-span-1 flex flex-col justify-between border-l-4 border-l-purple-600">
-                <div class="flex justify-between items-start text-purple-600">
-                    <span class="text-xs font-semibold uppercase tracking-wider">Ambas Faltas</span>
-                    <i class="fas fa-exclamation-triangle text-lg"></i>
-                </div>
-                <div class="mt-2">
-                    <span id="kpiFaltaAmbas" class="text-2xl font-black text-slate-800">0</span>
-                    <span class="text-[11px] text-slate-500 block">Tareo + Marcación</span>
-                </div>
+            <div class="metric-card">
+                <span class="metric-title">Falta Tareo y Marcación</span>
+                <span id="kpiFaltaAmbos" class="metric-value">0</span>
             </div>
-        </section>
-
-        <!-- 📊 DASHBOARD INTERACTIVO Y VISUAL -->
-        <section class="grid grid-cols-1 md:grid-cols-3 gap-4">
-            <!-- Grafico Sexo -->
-            <div class="bg-white p-4 rounded-xl shadow-sm border border-slate-100 flex flex-col justify-between">
-                <div class="flex items-center justify-between mb-2">
-                    <h3 class="font-bold text-sm text-slate-700 flex items-center gap-2">
-                        <i class="fas fa-venus-mars text-agriRed"></i> Distribución por Sexo
-                    </h3>
-                </div>
-                <div class="relative h-44 flex justify-center">
-                    <canvas id="chartSexo"></canvas>
-                </div>
-            </div>
-
-            <!-- Grafico Historico -->
-            <div class="bg-white p-4 rounded-xl shadow-sm border border-slate-100 flex flex-col justify-between">
-                <div class="flex items-center justify-between mb-2">
-                    <h3 class="font-bold text-sm text-slate-700 flex items-center gap-2">
-                        <i class="fas fa-history text-agriGreen"></i> Histórico del Trabajador
-                    </h3>
-                </div>
-                <div class="relative h-44 flex justify-center">
-                    <canvas id="chartHistorico"></canvas>
-                </div>
-            </div>
-
-            <!-- Grafico Modalidad -->
-            <div class="bg-white p-4 rounded-xl shadow-sm border border-slate-100 flex flex-col justify-between">
-                <div class="flex items-center justify-between mb-2">
-                    <h3 class="font-bold text-sm text-slate-700 flex items-center gap-2">
-                        <i class="fas fa-bus text-blue-600"></i> Modalidad de Trabajo
-                    </h3>
-                </div>
-                <div class="relative h-44 flex justify-center">
-                    <canvas id="chartModalidad"></canvas>
-                </div>
-            </div>
-        </section>
-
-        <!-- 🔍 PANEL DE FILTROS & ACCIONES -->
-        <section class="bg-white p-4 rounded-xl shadow-sm border border-slate-200 space-y-3">
-            <div class="flex flex-wrap items-center justify-between gap-2 border-b border-slate-100 pb-3">
-                <h3 class="font-bold text-slate-800 text-sm flex items-center gap-2">
-                    <i class="fas fa-filter text-agriRed"></i> Filtros de Busqueda y Control
-                </h3>
-                <div class="flex gap-2">
-                    <button onclick="openFormModal()" class="bg-agriGreen text-white text-xs px-3 py-2 rounded-lg font-bold hover:bg-emerald-800 transition flex items-center gap-1.5">
-                        <i class="fas fa-plus"></i> Registrar Asistencia
-                    </button>
-                    <button onclick="resetFilters()" class="bg-slate-100 text-slate-600 text-xs px-3 py-2 rounded-lg font-semibold hover:bg-slate-200 transition">
-                        Limpiar
-                    </button>
-                </div>
-            </div>
-
-            <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-2.5">
-                <div>
-                    <label class="text-[11px] font-bold text-slate-500 uppercase">Búsqueda DNI / Nombres</label>
-                    <input type="text" id="filterSearch" oninput="applyFilters()" placeholder="Buscar trabajador..." class="w-full mt-1 px-3 py-1.5 text-xs border border-slate-300 rounded-lg focus:ring-2 focus:ring-agriRed focus:outline-none">
-                </div>
-                <div>
-                    <label class="text-[11px] font-bold text-slate-500 uppercase">Semana</label>
-                    <select id="filterSemana" onchange="applyFilters()" class="w-full mt-1 px-3 py-1.5 text-xs border border-slate-300 rounded-lg focus:ring-2 focus:ring-agriRed focus:outline-none bg-white">
-                        <option value="">Todas las Semanas</option>
-                    </select>
-                </div>
-                <div>
-                    <label class="text-[11px] font-bold text-slate-500 uppercase">Mes</label>
-                    <select id="filterMes" onchange="applyFilters()" class="w-full mt-1 px-3 py-1.5 text-xs border border-slate-300 rounded-lg focus:ring-2 focus:ring-agriRed focus:outline-none bg-white">
-                        <option value="">Todos los Meses</option>
-                    </select>
-                </div>
-                <div>
-                    <label class="text-[11px] font-bold text-slate-500 uppercase">Alerta</label>
-                    <select id="filterAlerta" onchange="applyFilters()" class="w-full mt-1 px-3 py-1.5 text-xs border border-slate-300 rounded-lg focus:ring-2 focus:ring-agriRed focus:outline-none bg-white">
-                        <option value="">Todas las Alertas</option>
-                        <option value="ASISTIO">ASISTIO</option>
-                        <option value="FALTO">FALTO</option>
-                        <option value="FERIADO">FERIADO</option>
-                        <option value="INACTIVO">INACTIVO</option>
-                    </select>
-                </div>
-                <div>
-                    <label class="text-[11px] font-bold text-slate-500 uppercase">Estado Asistencia</label>
-                    <select id="filterEstado" onchange="applyFilters()" class="w-full mt-1 px-3 py-1.5 text-xs border border-slate-300 rounded-lg focus:ring-2 focus:ring-agriRed focus:outline-none bg-white">
-                        <option value="">Todos los Estados</option>
-                        <option value="ASISTIO">ASISTIO</option>
-                        <option value="FALTA MARCACIÓN">FALTA MARCACIÓN</option>
-                        <option value="FALTA TAREO">FALTA TAREO</option>
-                        <option value="FALTA TAREO Y FALTA MARCACIÓN">FALTA TAREO Y MARCACIÓN</option>
-                        <option value="INACTIVO">INACTIVO</option>
-                    </select>
-                </div>
-            </div>
-        </section>
-
-        <!-- 📅 MATRIZ DE ASISTENCIA SEMANAL (MATRIZ INTERACTIVA) -->
-        <section class="bg-white p-4 rounded-xl shadow-sm border border-slate-200">
-            <div class="flex items-center justify-between mb-3">
-                <div>
-                    <h3 class="font-bold text-slate-800 text-sm flex items-center gap-2">
-                        <i class="fas fa-calendar-alt text-agriGreen"></i> Matriz Consolidada de Faltas por Semana
-                    </h3>
-                    <p class="text-[11px] text-slate-500">Criterio semanal: <span class="bg-yellow-100 text-yellow-800 font-bold px-1.5 py-0.5 rounded">&gt;3 faltas (Amarillo)</span> y <span class="bg-red-100 text-red-800 font-bold px-1.5 py-0.5 rounded">6 faltas (Rojo - Candidato a baja)</span></p>
-                </div>
-            </div>
-
-            <div class="overflow-x-auto rounded-lg border border-slate-200">
-                <table class="w-full text-left border-collapse text-xs">
-                    <thead>
-                        <tr class="bg-slate-100 text-slate-700 font-bold border-b border-slate-200" id="matrixHeader">
-                            <th class="p-2.5 min-w-[200px]">Trabajador</th>
-                            <th class="p-2.5 text-center">Semana</th>
-                            <!-- Fechas dinámicas aquí -->
-                            <th class="p-2.5 text-center">Total Faltas</th>
-                            <th class="p-2.5 text-center">Estado / Alerta</th>
-                        </tr>
-                    </thead>
-                    <tbody id="matrixBody" class="divide-y divide-slate-100">
-                        <!-- Carga dinámica -->
-                    </tbody>
-                </table>
-            </div>
-        </section>
-
-        <!-- 📋 TABLA DETALLADA DE REGISTROS -->
-        <section class="bg-white p-4 rounded-xl shadow-sm border border-slate-200">
-            <div class="flex justify-between items-center mb-3">
-                <h3 class="font-bold text-slate-800 text-sm flex items-center gap-2">
-                    <i class="fas fa-table text-agriRed"></i> Registros Detallados de Campo
-                </h3>
-                <span id="rowCount" class="text-xs bg-slate-100 text-slate-600 font-bold px-2 py-1 rounded-full">0 registros</span>
-            </div>
-
-            <div class="overflow-x-auto no-scrollbar rounded-lg border border-slate-200 max-h-[500px]">
-                <table class="w-full text-left text-xs border-collapse">
-                    <thead class="bg-slate-800 text-white font-semibold sticky top-0 z-20">
-                        <tr>
-                            <th class="p-2.5 whitespace-nowrap">DNI</th>
-                            <th class="p-2.5 whitespace-nowrap">Apellidos y Nombres</th>
-                            <th class="p-2.5 whitespace-nowrap text-center">Semana</th>
-                            <th class="p-2.5 whitespace-nowrap text-center">Mes</th>
-                            <th class="p-2.5 whitespace-nowrap text-center">Día</th>
-                            <th class="p-2.5 whitespace-nowrap text-center">Fecha</th>
-                            <th class="p-2.5 whitespace-nowrap text-center">Alerta</th>
-                            <th class="p-2.5 whitespace-nowrap">Estado Asistencia</th>
-                            <th class="p-2.5 whitespace-nowrap">Histórico</th>
-                            <th class="p-2.5 whitespace-nowrap">Modalidad</th>
-                            <th class="p-2.5 whitespace-nowrap">Placa</th>
-                            <th class="p-2.5 whitespace-nowrap">Ruta</th>
-                            <th class="p-2.5 whitespace-nowrap text-center">Sexo</th>
-                            <th class="p-2.5 whitespace-nowrap text-center">Sync</th>
-                        </tr>
-                    </thead>
-                    <tbody id="tableBody" class="divide-y divide-slate-200">
-                        <!-- Registros -->
-                    </tbody>
-                </table>
-            </div>
-        </section>
-    </main>
-
-    <!-- MODAL FORMULARIO ASISTENCIA -->
-    <div id="formModal" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-center justify-center hidden p-3">
-        <div class="bg-white rounded-2xl max-w-lg w-full p-5 shadow-xl border border-slate-100 max-h-[90vh] overflow-y-auto">
-            <div class="flex justify-between items-center border-b pb-3 mb-4">
-                <h3 class="font-bold text-agriRed text-base flex items-center gap-2">
-                    <i class="fas fa-edit"></i> Marcar Asistencia en Campo
-                </h3>
-                <button onclick="closeFormModal()" class="text-slate-400 hover:text-slate-600">
-                    <i class="fas fa-times text-lg"></i>
-                </button>
-            </div>
-
-            <form id="attendanceForm" onsubmit="saveAttendance(event)" class="space-y-3">
-                <div class="grid grid-cols-2 gap-3">
-                    <div>
-                        <label class="text-[11px] font-bold text-slate-600 uppercase">DNI *</label>
-                        <input type="text" id="formDNI" maxlength="8" required class="w-full mt-1 p-2 border rounded-lg text-xs focus:ring-2 focus:ring-agriRed focus:outline-none">
-                    </div>
-                    <div>
-                        <label class="text-[11px] font-bold text-slate-600 uppercase">Sexo *</label>
-                        <select id="formSexo" required class="w-full mt-1 p-2 border rounded-lg text-xs bg-white focus:ring-2 focus:ring-agriRed focus:outline-none">
-                            <option value="M">Masculino (M)</option>
-                            <option value="F">Femenino (F)</option>
-                        </select>
-                    </div>
-                </div>
-
-                <div>
-                    <label class="text-[11px] font-bold text-slate-600 uppercase">Apellidos y Nombres *</label>
-                    <input type="text" id="formNombres" required class="w-full mt-1 p-2 border rounded-lg text-xs focus:ring-2 focus:ring-agriRed focus:outline-none">
-                </div>
-
-                <div class="grid grid-cols-3 gap-2">
-                    <div>
-                        <label class="text-[11px] font-bold text-slate-600 uppercase">Fecha *</label>
-                        <input type="date" id="formFecha" required onchange="autoFillDateFields()" class="w-full mt-1 p-2 border rounded-lg text-xs focus:ring-2 focus:ring-agriRed focus:outline-none">
-                    </div>
-                    <div>
-                        <label class="text-[11px] font-bold text-slate-600 uppercase">Semana</label>
-                        <input type="number" id="formSemana" readonly class="w-full mt-1 p-2 border rounded-lg text-xs bg-slate-100">
-                    </div>
-                    <div>
-                        <label class="text-[11px] font-bold text-slate-600 uppercase">Mes</label>
-                        <input type="text" id="formMes" readonly class="w-full mt-1 p-2 border rounded-lg text-xs bg-slate-100">
-                    </div>
-                </div>
-
-                <div class="grid grid-cols-2 gap-3">
-                    <div>
-                        <label class="text-[11px] font-bold text-slate-600 uppercase">Alerta *</label>
-                        <select id="formAlerta" required class="w-full mt-1 p-2 border rounded-lg text-xs bg-white focus:ring-2 focus:ring-agriRed focus:outline-none">
-                            <option value="ASISTIO">ASISTIO</option>
-                            <option value="FALTO">FALTO</option>
-                            <option value="FERIADO">FERIADO</option>
-                            <option value="INACTIVO">INACTIVO</option>
-                        </select>
-                    </div>
-                    <div>
-                        <label class="text-[11px] font-bold text-slate-600 uppercase">Estado Asistencia *</label>
-                        <select id="formEstado" required class="w-full mt-1 p-2 border rounded-lg text-xs bg-white focus:ring-2 focus:ring-agriRed focus:outline-none">
-                            <option value="ASISTIO">ASISTIO</option>
-                            <option value="FALTA MARCACIÓN">FALTA MARCACIÓN</option>
-                            <option value="FALTA TAREO">FALTA TAREO</option>
-                            <option value="FALTA TAREO Y FALTA MARCACIÓN">FALTA TAREO Y MARCACIÓN</option>
-                            <option value="FERIADO">FERIADO</option>
-                            <option value="INACTIVO">INACTIVO</option>
-                        </select>
-                    </div>
-                </div>
-
-                <div class="grid grid-cols-2 gap-3">
-                    <div>
-                        <label class="text-[11px] font-bold text-slate-600 uppercase">Histórico</label>
-                        <select id="formHistorico" class="w-full mt-1 p-2 border rounded-lg text-xs bg-white focus:ring-2 focus:ring-agriRed focus:outline-none">
-                            <option value="EXCELENTE">EXCELENTE</option>
-                            <option value="BUENO">BUENO</option>
-                            <option value="REGULAR">REGULAR</option>
-                            <option value="MALO">MALO</option>
-                            <option value="NUEVO">NUEVO</option>
-                        </select>
-                    </div>
-                    <div>
-                        <label class="text-[11px] font-bold text-slate-600 uppercase">Modalidad</label>
-                        <select id="formModalidad" class="w-full mt-1 p-2 border rounded-lg text-xs bg-white focus:ring-2 focus:ring-agriRed focus:outline-none">
-                            <option value="IDA Y VUELTA">IDA Y VUELTA</option>
-                            <option value="CAMPAMENTO">CAMPAMENTO</option>
-                        </select>
-                    </div>
-                </div>
-
-                <div class="grid grid-cols-2 gap-3">
-                    <div>
-                        <label class="text-[11px] font-bold text-slate-600 uppercase">Placa Transportista</label>
-                        <input type="text" id="formPlaca" placeholder="Ej: A1B-707" class="w-full mt-1 p-2 border rounded-lg text-xs focus:ring-2 focus:ring-agriRed focus:outline-none">
-                    </div>
-                    <div>
-                        <label class="text-[11px] font-bold text-slate-600 uppercase">Ruta</label>
-                        <input type="text" id="formRuta" placeholder="Ej: EL TAYMI - SEDE OLMOS" class="w-full mt-1 p-2 border rounded-lg text-xs focus:ring-2 focus:ring-agriRed focus:outline-none">
-                    </div>
-                </div>
-
-                <div class="pt-3 flex gap-2">
-                    <button type="button" onclick="closeFormModal()" class="w-1/2 py-2.5 bg-slate-100 text-slate-700 font-bold rounded-xl text-xs hover:bg-slate-200">Cancelar</button>
-                    <button type="submit" class="w-1/2 py-2.5 bg-agriRed text-white font-bold rounded-xl text-xs hover:bg-agriRed-dark shadow-md">Guardar Registro</button>
-                </div>
-            </form>
         </div>
+
+        <!-- Dashboards -->
+        <div class="dashboard-grid">
+            <div class="chart-card">
+                <h4><i class="fa-solid fa-venus-mars"></i> Distribución por Sexo</h4>
+                <canvas id="chartSexo"></canvas>
+            </div>
+            <div class="chart-card">
+                <h4><i class="fa-solid fa-clock-rotate-left"></i> Histórico</h4>
+                <canvas id="chartHistorico"></canvas>
+            </div>
+            <div class="chart-card">
+                <h4><i class="fa-solid fa-briefcase"></i> Modalidad de Trabajo</h4>
+                <canvas id="chartModalidad"></canvas>
+            </div>
+        </div>
+
+        <!-- Filters -->
+        <div class="filter-section">
+            <div class="filter-grid">
+                <input type="text" id="filterSearch" class="form-control" placeholder="Buscar DNI / Nombres..." oninput="applyFilters()">
+                <select id="filterSemana" class="form-control" onchange="applyFilters()">
+                    <option value="">Todas las Semanas</option>
+                </select>
+                <select id="filterMes" class="form-control" onchange="applyFilters()">
+                    <option value="">Todos los Meses</option>
+                </select>
+                <select id="filterAlerta" class="form-control" onchange="applyFilters()">
+                    <option value="">Todas las Alertas</option>
+                    <option value="FALTO">FALTO</option>
+                </select>
+                <select id="filterEstado" class="form-control" onchange="applyFilters()">
+                    <option value="">Todos los Estados</option>
+                    <option value="FALTA MARCACION">FALTA MARCACION</option>
+                    <option value="FALTA TAREO">FALTA TAREO</option>
+                    <option value="FALTA TAREO Y FALTA MARCACION">FALTA TAREO Y MARCACION</option>
+                </select>
+            </div>
+        </div>
+
+        <!-- Matrix Table -->
+        <div class="table-container">
+            <h3><i class="fa-solid fa-calendar-days"></i> Matriz de Asistencia por Fechas</h3>
+            <table id="matrixTable">
+                <thead>
+                    <tr id="matrixHeader">
+                        <th>DNI</th>
+                        <th>Apellidos y Nombres</th>
+                        <!-- Fechas dinámicas -->
+                    </tr>
+                </thead>
+                <tbody id="matrixBody"></tbody>
+            </table>
+        </div>
+
+        <!-- Detailed Table -->
+        <div class="table-container">
+            <h3><i class="fa-solid fa-list-check"></i> Detalle General de Asistencia</h3>
+            <table id="detailTable">
+                <thead>
+                    <tr>
+                        <th>DNI</th>
+                        <th>Nombres</th>
+                        <th>Semana</th>
+                        <th>Mes</th>
+                        <th>Día</th>
+                        <th>Fecha</th>
+                        <th>Alerta</th>
+                        <th>Estado Asistencia</th>
+                        <th>Histórico</th>
+                        <th>Modalidad</th>
+                        <th>Placa</th>
+                        <th>Ruta</th>
+                        <th>Sexo</th>
+                    </tr>
+                </thead>
+                <tbody id="detailBody"></tbody>
+            </table>
+        </div>
+
     </div>
 
-    <!-- LOGICA SCRIPT PWA & DATA MANAGEMENT -->
     <script>
-        // CONFIGURACION API GOOGLE APPS SCRIPT
-        const GAS_API_URL = "https://script.google.com/macros/s/AKfycbykxOl29j0fJhxO8KNIseLTxWgnDI6zuX-ZR0raeLG5IS_poTcrHgUJGCKnbladGQlD/exec"; 
-
         let db;
-        let allData = [];
-        let filteredData = [];
-        let charts = {};
+        let records = [];
+        let chartSexo, chartHistorico, chartModalidad;
 
-        // Inicializar IndexedDB
-        function initDB() {
-            return new Promise((resolve, reject) => {
-                const request = indexedDB.open("AgricolaHuarmeyDB", 1);
-                request.onupgradeneeded = (e) => {
-                    const db = e.target.result;
-                    if (!db.objectStoreNames.contains("asistencia")) {
-                        const store = db.createObjectStore("asistencia", { keyPath: "id", autoIncrement: true });
-                        store.createIndex("syncState", "syncState", { unique: false });
-                    }
-                };
-                request.onsuccess = (e) => {
-                    db = e.target.result;
-                    resolve(db);
-                };
-                request.onerror = (e) => reject("Error al abrir IndexedDB");
-            });
-        }
+        // Init IndexedDB
+        const request = indexedDB.open("AgricolaHuarmeyDB", 1);
+        request.onupgradeneeded = (e) => {
+            db = e.target.result;
+            if (!db.objectStoreNames.contains("asistencia")) {
+                db.createObjectStore("asistencia", { keyPath: "id", autoIncrement: true });
+            }
+        };
+        request.onsuccess = (e) => {
+            db = e.target.result;
+            loadDataFromDB();
+        };
 
-        // Registrar Service Worker
-        if ('serviceWorker' in navigator) {
-            window.addEventListener('load', () => {
-                navigator.serviceWorker.register('./service-worker.js')
-                    .then(reg => console.log('Service Worker registrado con éxito', reg))
-                    .catch(err => console.log('Error registrando Service Worker', err));
-            });
-        }
+        // Network Status
+        window.addEventListener('online', updateNetworkStatus);
+        window.addEventListener('offline', updateNetworkStatus);
 
-        // Detectar estado de Red
-        function updateOnlineStatus() {
-            const isOnline = navigator.onLine;
-            const statusDiv = document.getElementById("connectionStatus");
-            const statusText = document.getElementById("statusText");
-            
-            if (isOnline) {
-                statusDiv.className = "flex items-center gap-1 text-xs px-2 py-1 rounded-full bg-agriGreen text-white";
-                statusText.innerText = "Online";
-                syncData();
+        function updateNetworkStatus() {
+            const status = document.getElementById('connectionStatus');
+            if (navigator.onLine) {
+                status.className = "status-badge status-online";
+                status.innerHTML = `<i class="fa-solid fa-wifi"></i> En línea`;
             } else {
-                statusDiv.className = "flex items-center gap-1 text-xs px-2 py-1 rounded-full bg-slate-600 text-white";
-                statusText.innerText = "Offline";
+                status.className = "status-badge status-offline";
+                status.innerHTML = `<i class="fa-solid fa-plane"></i> Modo Offline`;
             }
         }
 
-        window.addEventListener('online', updateOnlineStatus);
-        window.addEventListener('offline', updateOnlineStatus);
-
-        // Cargar Datos Iniciales (Offline First)
-        async function loadData() {
-            await initDB();
-            updateOnlineStatus();
-
-            // Cargar de IndexedDB primero
+        // Dummy Data Generator for Initial Render
+        function loadDataFromDB() {
             const tx = db.transaction("asistencia", "readonly");
             const store = tx.objectStore("asistencia");
-            const request = store.getAll();
-
-            request.onsuccess = async () => {
-                allData = request.result || [];
-                
-                // Si hay conexión y la DB local está vacía, jalar de Google Sheets
-                if (allData.length === 0 && navigator.onLine && GAS_API_URL !== "YOUR_GOOGLE_APPS_SCRIPT_WEB_APP_URL") {
-                    try {
-                        const res = await fetch(GAS_API_URL);
-                        const cloudData = await res.json();
-                        if (Array.isArray(cloudData)) {
-                            allData = cloudData.map(item => ({ ...item, syncState: 'Sincronizado' }));
-                            // Guardar en local
-                            const writeTx = db.transaction("asistencia", "readwrite");
-                            const writeStore = writeTx.objectStore("asistencia");
-                            allData.forEach(item => writeStore.add(item));
-                        }
-                    } catch (err) {
-                        console.log("No se pudo obtener datos del cloud:", err);
-                    }
+            const req = store.getAll();
+            req.onsuccess = () => {
+                records = req.result;
+                if (records.length === 0) {
+                    records = generateMockData();
                 }
-                
-                populateFilterOptions();
-                applyFilters();
-                updatePendingBadge();
+                renderApp();
             };
         }
 
-        // Poblar Opciones de Filtros
-        function populateFilterOptions() {
-            const semanas = [...new Set(allData.map(d => d.SEMANA))].sort((a,b) => a-b);
-            const meses = [...new Set(allData.map(d => d.MES))].filter(Boolean);
-
-            const selectSemana = document.getElementById("filterSemana");
-            selectSemana.innerHTML = '<option value="">Todas las Semanas</option>';
-            semanas.forEach(s => selectSemana.innerHTML += `<option value="${s}">Semana ${s}</option>`);
-
-            const selectMes = document.getElementById("filterMes");
-            selectMes.innerHTML = '<option value="">Todos los Meses</option>';
-            meses.forEach(m => selectMes.innerHTML += `<option value="${m}">${m}</option>`);
+        function generateMockData() {
+            return [
+                { dni: "70123456", nombres: "Perez Juan", semana: "W12", mes: "Marzo", dia: "Lun", fecha: "2026-03-01", alerta: "OK", estado: "ASISTIO", historico: "Reingreso", modalidad: "Destajo", placa: "ABC-123", ruta: "Ruta 1", sexo: "M", faltasSemana: 1 },
+                { dni: "70123456", nombres: "Perez Juan", semana: "W12", mes: "Marzo", dia: "Mar", fecha: "2026-03-02", alerta: "FALTO", estado: "FALTA MARCACION", historico: "Reingreso", modalidad: "Destajo", placa: "ABC-123", ruta: "Ruta 1", sexo: "M", faltasSemana: 4 },
+                { dni: "80123456", nombres: "Gomez Maria", semana: "W12", mes: "Marzo", dia: "Lun", fecha: "2026-03-01", alerta: "FALTO", estado: "FALTA TAREO Y FALTA MARCACION", historico: "Nuevo", modalidad: "Jornal", placa: "XYZ-987", ruta: "Ruta 2", sexo: "F", faltasSemana: 6 }
+            ];
         }
 
-        // Aplicar Filtros y Actualizar UI
-        function applyFilters() {
-            const search = document.getElementById("filterSearch").value.toLowerCase();
-            const semana = document.getElementById("filterSemana").value;
-            const mes = document.getElementById("filterMes").value;
-            const alerta = document.getElementById("filterAlerta").value;
-            const estado = document.getElementById("filterEstado").value;
+        function renderApp() {
+            updateKPIs();
+            renderCharts();
+            populateFilters();
+            renderMatrixTable();
+            renderDetailTable();
+        }
 
-            filteredData = allData.filter(item => {
-                const matchSearch = !search || 
-                    (item.DNI && item.DNI.toString().toLowerCase().includes(search)) || 
-                    (item["APELLIDOS Y NOMBRES"] && item["APELLIDOS Y NOMBRES"].toLowerCase().includes(search));
-                const matchSemana = !semana || item.SEMANA == semana;
-                const matchMes = !mes || item.MES == mes;
-                const matchAlerta = !alerta || item.ALERTA == alerta;
-                const matchEstado = !estado || item["ESTADO ASISTENCIA"] == estado;
+        function updateKPIs() {
+            document.getElementById('kpiAsistencias').innerText = records.filter(r => r.estado === 'ASISTIO').length;
+            document.getElementById('kpiFaltas').innerText = records.filter(r => r.alerta === 'FALTO').length;
+            document.getElementById('kpiFaltaMarcacion').innerText = records.filter(r => r.estado === 'FALTA MARCACION').length;
+            document.getElementById('kpiFaltaTareo').innerText = records.filter(r => r.estado === 'FALTA TAREO').length;
+            document.getElementById('kpiFaltaAmbos').innerText = records.filter(r => r.estado === 'FALTA TAREO Y FALTA MARCACION').length;
+        }
 
-                return matchSearch && matchSemana && matchMes && matchAlerta && matchEstado;
+        function renderCharts() {
+            const countSexo = { M: 0, F: 0 };
+            const countHist = {};
+            const countMod = {};
+
+            records.forEach(r => {
+                if (r.sexo) countSexo[r.sexo] = (countSexo[r.sexo] || 0) + 1;
+                if (r.historico) countHist[r.historico] = (countHist[r.historico] || 0) + 1;
+                if (r.modalidad) countMod[r.modalidad] = (countMod[r.modalidad] || 0) + 1;
             });
 
-            updateKPIs(filteredData);
-            updateCharts(filteredData);
-            renderMatrix(filteredData);
-            renderTable(filteredData);
-        }
-
-        function resetFilters() {
-            document.getElementById("filterSearch").value = "";
-            document.getElementById("filterSemana").value = "";
-            document.getElementById("filterMes").value = "";
-            document.getElementById("filterAlerta").value = "";
-            document.getElementById("filterEstado").value = "";
-            applyFilters();
-        }
-
-        // Actualizar Tarjetas KPI
-        function updateKPIs(data) {
-            let asistio = 0, falto = 0, faltaMarcacion = 0, faltaTareo = 0, faltaAmbas = 0;
-
-            data.forEach(d => {
-                if (d.ALERTA === "ASISTIO") asistio++;
-                if (d.ALERTA === "FALTO") falto++;
-
-                const est = d["ESTADO ASISTENCIA"] || "";
-                if (est === "FALTA MARCACIÓN") faltaMarcacion++;
-                if (est === "FALTA TAREO") faltaTareo++;
-                if (est === "FALTA TAREO Y FALTA MARCACIÓN") faltaAmbas++;
-            });
-
-            document.getElementById("kpiAsistio").innerText = asistio;
-            document.getElementById("kpiFalto").innerText = falto;
-            document.getElementById("kpiFaltaMarcacion").innerText = faltaMarcacion;
-            document.getElementById("kpiFaltaTareo").innerText = faltaTareo;
-            document.getElementById("kpiFaltaAmbas").innerText = faltaAmbas;
-        }
-
-        // Actualizar Gráficos (Dashboard)
-        function updateCharts(data) {
-            // Chart Sexo
-            const sexoCounts = { M: 0, F: 0 };
-            data.forEach(d => { if(d.SEXO) sexoCounts[d.SEXO] = (sexoCounts[d.SEXO] || 0) + 1; });
-
-            renderChart('chartSexo', 'doughnut', ['Masculino (M)', 'Femenino (F)'], [sexoCounts.M || 0, sexoCounts.F || 0], ['#2563EB', '#EC4899']);
-
-            // Chart Histórico
-            const histCounts = {};
-            data.forEach(d => { if(d.HISTORICO) histCounts[d.HISTORICO] = (histCounts[d.HISTORICO] || 0) + 1; });
-
-            renderChart('chartHistorico', 'bar', Object.keys(histCounts), Object.values(histCounts), ['#2E7D32', '#3B82F6', '#F59E0B', '#EF4444', '#8B5CF6']);
-
-            // Chart Modalidad
-            const modCounts = {};
-            data.forEach(d => { if(d.MODALIDAD) modCounts[d.MODALIDAD] = (modCounts[d.MODALIDAD] || 0) + 1; });
-
-            renderChart('chartModalidad', 'pie', Object.keys(modCounts), Object.values(modCounts), ['#C8102E', '#10B981']);
-        }
-
-        function renderChart(canvasId, type, labels, data, colors) {
-            if (charts[canvasId]) charts[canvasId].destroy();
-            const ctx = document.getElementById(canvasId).getContext('2d');
-            charts[canvasId] = new Chart(ctx, {
-                type: type,
+            if (chartSexo) chartSexo.destroy();
+            chartSexo = new Chart(document.getElementById('chartSexo'), {
+                type: 'doughnut',
                 data: {
-                    labels: labels,
-                    datasets: [{
-                        data: data,
-                        backgroundColor: colors,
-                        borderWidth: 1
-                    }]
-                },
-                options: {
-                    responsive: true,
-                    maintainAspectRatio: false,
-                    plugins: {
-                        legend: { position: 'bottom', labels: { boxWidth: 10, font: { size: 10 } } }
-                    }
+                    labels: ['Masculino', 'Femenino'],
+                    datasets: [{ data: [countSexo.M, countSexo.F], backgroundColor: ['#2e7d32', '#d92b21'] }]
+                }
+            });
+
+            if (chartHistorico) chartHistorico.destroy();
+            chartHistorico = new Chart(document.getElementById('chartHistorico'), {
+                type: 'bar',
+                data: {
+                    labels: Object.keys(countHist),
+                    datasets: [{ label: 'Histórico', data: Object.values(countHist), backgroundColor: '#2e7d32' }]
+                }
+            });
+
+            if (chartModalidad) chartModalidad.destroy();
+            chartModalidad = new Chart(document.getElementById('chartModalidad'), {
+                type: 'pie',
+                data: {
+                    labels: Object.keys(countMod),
+                    datasets: [{ data: Object.values(countMod), backgroundColor: ['#f1c40f', '#2e7d32', '#d92b21'] }]
                 }
             });
         }
 
-        // Renderizar Matriz Consolidada de Faltas
-        function renderMatrix(data) {
-            const matrixHeader = document.getElementById("matrixHeader");
-            const matrixBody = document.getElementById("matrixBody");
+        function populateFilters() {
+            const semanas = [...new Set(records.map(r => r.semana))];
+            const meses = [...new Set(records.map(r => r.mes))];
+            
+            const selSemana = document.getElementById('filterSemana');
+            selSemana.innerHTML = '<option value="">Todas las Semanas</option>' + semanas.map(s => `<option value="${s}">${s}</option>`).join('');
 
-            // Agrupar por trabajador y semana
-            const grouped = {};
-            data.forEach(d => {
-                const key = `${d.DNI}_${d.SEMANA}`;
-                if (!grouped[key]) {
-                    grouped[key] = {
-                        DNI: d.DNI,
-                        Nombre: d["APELLIDOS Y NOMBRES"],
-                        Semana: d.SEMANA,
-                        faltas: 0,
-                        asistencias: 0,
-                        dias: {}
-                    };
-                }
-                const fecha = d["FECHA INDICE"] ? d["FECHA INDICE"].substring(0,10) : d.DIA;
-                grouped[key].dias[fecha] = d.ALERTA;
-                if (d.ALERTA === "FALTO") grouped[key].faltas++;
-                if (d.ALERTA === "ASISTIO") grouped[key].asistencias++;
+            const selMes = document.getElementById('filterMes');
+            selMes.innerHTML = '<option value="">Todos los Meses</option>' + meses.map(m => `<option value="${m}">${m}</option>`).join('');
+        }
+
+        function getFilteredRecords() {
+            const q = document.getElementById('filterSearch').value.toLowerCase();
+            const sem = document.getElementById('filterSemana').value;
+            const mes = document.getElementById('filterMes').value;
+            const alr = document.getElementById('filterAlerta').value;
+            const est = document.getElementById('filterEstado').value;
+
+            return records.filter(r => {
+                const matchQ = r.dni.toLowerCase().includes(q) || r.nombres.toLowerCase().includes(q);
+                const matchSem = sem === "" || r.semana === sem;
+                const matchMes = mes === "" || r.mes === mes;
+                const matchAlr = alr === "" || r.alerta === alr;
+                const matchEst = est === "" || r.estado === est;
+                return matchQ && matchSem && matchMes && matchAlr && matchEst;
+            });
+        }
+
+        function applyFilters() {
+            renderDetailTable();
+        }
+
+        function renderMatrixTable() {
+            const dates = [...new Set(records.map(r => r.fecha))].sort();
+            const headerRow = document.getElementById('matrixHeader');
+            headerRow.innerHTML = '<th>DNI</th><th>Apellidos y Nombres</th>' + dates.map(d => `<th>${d}</th>`).join('');
+
+            const workers = {};
+            records.forEach(r => {
+                if (!workers[r.dni]) workers[r.dni] = { nombres: r.nombres, dates: {} };
+                workers[r.dni].dates[r.fecha] = r.estado;
             });
 
-            const rows = Object.values(grouped);
-            
-            matrixBody.innerHTML = "";
-            if (rows.length === 0) {
-                matrixBody.innerHTML = `<tr><td colspan="4" class="text-center p-4 text-slate-400">No hay datos para mostrar en la matriz</td></tr>`;
+            const tbody = document.getElementById('matrixBody');
+            tbody.innerHTML = Object.keys(workers).map(dni => {
+                const w = workers[dni];
+                const dateCols = dates.map(d => {
+                    const st = w.dates[d] || 'INACTIVO';
+                    let badgeClass = 'badge-inactivo';
+                    if (st === 'ASISTIO') badgeClass = 'badge-asistio';
+                    if (st === 'FALTO') badgeClass = 'badge-falto';
+                    if (st === 'FERIADO') badgeClass = 'badge-feriado';
+                    return `<td><span class="badge-status ${badgeClass}">${st}</span></td>`;
+                }).join('');
+
+                return `<tr><td>${dni}</td><td>${w.nombres}</td>${dateCols}</tr>`;
+            }).join('');
+        }
+
+        function renderDetailTable() {
+            const filtered = getFilteredRecords();
+            const tbody = document.getElementById('detailBody');
+
+            tbody.innerHTML = filtered.map(r => {
+                let alertClass = "";
+                if (r.faltasSemana >= 6) alertClass = "row-warning-red";
+                else if (r.faltasSemana > 3) alertClass = "row-warning-yellow";
+
+                return `<tr class="${alertClass}">
+                    <td>${r.dni}</td>
+                    <td>${r.nombres}</td>
+                    <td>${r.semana}</td>
+                    <td>${r.mes}</td>
+                    <td>${r.dia}</td>
+                    <td>${r.fecha}</td>
+                    <td>${r.alerta}</td>
+                    <td>${r.estado}</td>
+                    <td>${r.historico}</td>
+                    <td>${r.modalidad}</td>
+                    <td>${r.placa}</td>
+                    <td>${r.ruta}</td>
+                    <td>${r.sexo}</td>
+                </tr>`;
+            }).join('');
+        }
+
+        function syncData() {
+            if (!navigator.onLine) {
+                alert("Sin conexión. Los datos se enviarán cuando vuelvas a tener internet.");
                 return;
             }
-
-            rows.slice(0, 50).forEach(row => {
-                let statusBadge = "";
-                let rowBg = "";
-
-                // Aplicar Criterios de Faltas
-                if (row.faltas >= 6) {
-                    rowBg = "bg-red-50 text-red-900";
-                    statusBadge = `<span class="bg-red-600 text-white font-bold px-2 py-0.5 rounded text-[10px]"><i class="fas fa-trash-alt mr-1"></i> 6 FALTAS - ELIMINAR</span>`;
-                } else if (row.faltas > 3) {
-                    rowBg = "bg-yellow-50 text-yellow-900";
-                    statusBadge = `<span class="bg-yellow-500 text-white font-bold px-2 py-0.5 rounded text-[10px]"><i class="fas fa-exclamation-triangle mr-1"></i> ALERTA (>3 Faltas)</span>`;
-                } else {
-                    statusBadge = `<span class="bg-emerald-100 text-emerald-800 font-semibold px-2 py-0.5 rounded text-[10px]">OK</span>`;
-                }
-
-                matrixBody.innerHTML += `
-                    <tr class="${rowBg} hover:bg-slate-50 transition border-b border-slate-100">
-                        <td class="p-2.5 font-medium">
-                            <div class="font-bold">${row.Nombre}</div>
-                            <div class="text-[10px] text-slate-500">DNI: ${row.DNI}</div>
-                        </td>
-                        <td class="p-2.5 text-center font-bold text-slate-700">Semana ${row.Semana}</td>
-                        <td class="p-2.5 text-center font-extrabold text-sm ${row.faltas > 3 ? 'text-red-600' : 'text-slate-700'}">${row.faltas}</td>
-                        <td class="p-2.5 text-center">${statusBadge}</td>
-                    </tr>
-                `;
-            });
+            fetch("YOUR_GAS_WEB_APP_URL", {
+                method: "POST",
+                body: JSON.stringify(records)
+            })
+            .then(res => res.json())
+            .then(data => alert("Sincronización exitosa con Google Sheets."))
+            .catch(err => alert("Error al sincronizar: " + err));
         }
 
-        // Renderizar Tabla Completa
-        function renderTable(data) {
-            const tableBody = document.getElementById("tableBody");
-            document.getElementById("rowCount").innerText = `${data.length} registros`;
-
-            tableBody.innerHTML = "";
-            if (data.length === 0) {
-                tableBody.innerHTML = `<tr><td colspan="14" class="text-center p-6 text-slate-400">No se encontraron registros.</td></tr>`;
-                return;
-            }
-
-            data.slice(0, 100).forEach(d => {
-                let alertaStyle = "bg-slate-100 text-slate-700";
-                if (d.ALERTA === "ASISTIO") alertaStyle = "bg-emerald-100 text-emerald-800 font-bold";
-                if (d.ALERTA === "FALTO") alertaStyle = "bg-red-100 text-red-800 font-bold";
-                if (d.ALERTA === "FERIADO") alertaStyle = "bg-blue-100 text-blue-800 font-bold";
-
-                let syncBadge = d.syncState === 'Sincronizado' 
-                    ? `<span class="text-emerald-600" title="Sincronizado"><i class="fas fa-check-circle"></i></span>`
-                    : `<span class="text-amber-500" title="Pendiente"><i class="fas fa-clock"></i></span>`;
-
-                tableBody.innerHTML += `
-                    <tr class="hover:bg-slate-50 transition border-b border-slate-100">
-                        <td class="p-2.5 font-medium">${d.DNI || ''}</td>
-                        <td class="p-2.5 font-bold text-slate-800">${d["APELLIDOS Y NOMBRES"] || ''}</td>
-                        <td class="p-2.5 text-center font-semibold">${d.SEMANA || ''}</td>
-                        <td class="p-2.5 text-center">${d.MES || ''}</td>
-                        <td class="p-2.5 text-center uppercase">${d.DIA || ''}</td>
-                        <td class="p-2.5 text-center text-[11px] text-slate-500">${d["FECHA INDICE"] ? d["FECHA INDICE"].substring(0,10) : ''}</td>
-                        <td class="p-2.5 text-center"><span class="px-2 py-0.5 rounded text-[10px] ${alertaStyle}">${d.ALERTA || ''}</span></td>
-                        <td class="p-2.5 text-xs">${d["ESTADO ASISTENCIA"] || ''}</td>
-                        <td class="p-2.5"><span class="bg-slate-100 px-1.5 py-0.5 rounded text-[10px] font-semibold text-slate-600">${d.HISTORICO || ''}</span></td>
-                        <td class="p-2.5 text-xs">${d.MODALIDAD || ''}</td>
-                        <td class="p-2.5 text-xs font-mono">${d.PLACA || ''}</td>
-                        <td class="p-2.5 text-xs truncate max-w-[150px]">${d.RUTA || ''}</td>
-                        <td class="p-2.5 text-center font-bold">${d.SEXO || ''}</td>
-                        <td class="p-2.5 text-center text-sm">${syncBadge}</td>
-                    </tr>
-                `;
-            });
+        // Register Service Worker
+        if ('serviceWorker' in navigator) {
+            navigator.serviceWorker.register('service-worker.js');
         }
-
-        // Modal Handlers & Form Auto-fill
-        function openFormModal() {
-            document.getElementById("formModal").classList.remove("hidden");
-            document.getElementById("formFecha").value = new Date().toISOString().substring(0,10);
-            autoFillDateFields();
-        }
-
-        function closeFormModal() {
-            document.getElementById("formModal").classList.add("hidden");
-        }
-
-        function autoFillDateFields() {
-            const fechaVal = document.getElementById("formFecha").value;
-            if (!fechaVal) return;
-            const date = new Date(fechaVal);
-            
-            // Calculo aprox semana del año
-            const firstJan = new Date(date.getFullYear(), 0, 1);
-            const numberOfDays = Math.floor((date - firstJan) / (24 * 60 * 60 * 1000));
-            const weekNum = Math.ceil(( date.getDay() + 1 + numberOfDays) / 7);
-
-            const meses = ['Ene', 'Feb', 'Mar', 'Abr', 'May', 'Jun', 'Jul', 'Ago', 'Set', 'Oct', 'Nov', 'Dic'];
-            
-            document.getElementById("formSemana").value = weekNum;
-            document.getElementById("formMes").value = meses[date.getMonth()];
-        }
-
-        // Guardar Asistencia (Offline First)
-        async function saveAttendance(e) {
-            e.preventDefault();
-
-            const fechaInput = document.getElementById("formFecha").value;
-            const dateObj = new Date(fechaInput);
-            const diasSemana = ['dom', 'lun', 'mar', 'mié', 'jue', 'vie', 'sáb'];
-
-            const newRecord = {
-                DNI: document.getElementById("formDNI").value,
-                "APELLIDOS Y NOMBRES": document.getElementById("formNombres").value.toUpperCase(),
-                SEMANA: parseInt(document.getElementById("formSemana").value),
-                MES: document.getElementById("formMes").value,
-                DIA: diasSemana[dateObj.getDay()],
-                "FECHA INDICE": fechaInput,
-                ALERTA: document.getElementById("formAlerta").value,
-                "ESTADO ASISTENCIA": document.getElementById("formEstado").value,
-                HISTORICO: document.getElementById("formHistorico").value,
-                MODALIDAD: document.getElementById("formModalidad").value,
-                PLACA: document.getElementById("formPlaca").value.toUpperCase(),
-                RUTA: document.getElementById("formRuta").value.toUpperCase(),
-                SEXO: document.getElementById("formSexo").value,
-                syncState: 'Pendiente'
-            };
-
-            // Guardar en IndexedDB
-            const tx = db.transaction("asistencia", "readwrite");
-            const store = tx.objectStore("asistencia");
-            store.add(newRecord);
-
-            tx.oncomplete = () => {
-                allData.unshift(newRecord);
-                populateFilterOptions();
-                applyFilters();
-                updatePendingBadge();
-                closeFormModal();
-                
-                // Intentar sincronizar si hay red
-                if (navigator.onLine) {
-                    syncData();
-                }
-            };
-        }
-
-        // Sincronización Background con Google Sheets
-        async function syncData() {
-            if (!navigator.onLine || GAS_API_URL === "YOUR_GOOGLE_APPS_SCRIPT_WEB_APP_URL") return;
-
-            const syncIcon = document.getElementById("syncIcon");
-            syncIcon.classList.add("fa-spin");
-
-            const tx = db.transaction("asistencia", "readonly");
-            const store = tx.objectStore("asistencia");
-            const request = store.getAll();
-
-            request.onsuccess = async () => {
-                const pending = (request.result || []).filter(r => r.syncState === 'Pendiente');
-                
-                if (pending.length === 0) {
-                    syncIcon.classList.remove("fa-spin");
-                    return;
-                }
-
-                for (let record of pending) {
-                    try {
-                        const res = await fetch(GAS_API_URL, {
-                            method: "POST",
-                            mode: "cors",
-                            headers: { "Content-Type": "application/json" },
-                            body: JSON.stringify(record)
-                        });
-                        
-                        if (res.ok) {
-                            // Actualizar a Sincronizado en IndexedDB
-                            record.syncState = 'Sincronizado';
-                            const updateTx = db.transaction("asistencia", "readwrite");
-                            updateTx.objectStore("asistencia").put(record);
-                        }
-                    } catch (err) {
-                        console.error("Error sincronizando registro:", err);
-                    }
-                }
-
-                syncIcon.classList.remove("fa-spin");
-                loadData();
-            };
-        }
-
-        function updatePendingBadge() {
-            const pendingCount = allData.filter(d => d.syncState === 'Pendiente').length;
-            const badge = document.getElementById("pendingBadge");
-            if (pendingCount > 0) {
-                badge.innerText = pendingCount;
-                badge.classList.remove("hidden");
-            } else {
-                badge.classList.add("hidden");
-            }
-        }
-
-        // Carga Inicial
-        window.onload = loadData;
     </script>
 </body>
 </html>

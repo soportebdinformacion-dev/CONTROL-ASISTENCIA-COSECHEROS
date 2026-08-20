@@ -2,807 +2,457 @@
 <html lang="es">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Agrícola Huarmey - Control de Asistencia</title>
   <link rel="manifest" href="manifest.json">
-  <meta name="theme-color" content="#2E7D32">
-  <link rel="apple-touch-icon" href="https://cdn-icons-png.flaticon.com/512/2674/2674067.png">
+  <meta name="theme-color" content="#d32f2f">
   
-  <!-- FontAwesome Icons & Chart.js -->
-  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <!-- Tailwind CSS & Lucide Icons -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://unpkg.com/lucide@latest"></script>
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 
   <style>
     :root {
-      --red-agri: #D32F2F;
-      --red-light: #FFEBEE;
-      --green-agri: #2E7D32;
-      --green-light: #E8F5E9;
-      --yellow-warn: #FBC02D;
-      --yellow-light: #FFFDE7;
-      --bg-natural: #F4F6F4;
-      --card-bg: #FFFFFF;
-      --text-dark: #2C3E50;
-      --text-muted: #7F8C8D;
-      --border-color: #E0E0E0;
+      --color-primary: #d32f2f;
+      --color-secondary: #2e7d32;
     }
-
-    * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Segoe UI', system-ui, -apple-system, sans-serif; }
-    body { background-color: var(--bg-natural); color: var(--text-dark); padding-bottom: 30px; }
-
-    header {
-      background: linear-gradient(135deg, var(--green-agri), #1b5e20);
-      color: white; padding: 15px 20px; display: flex; align-items: center; justify-content: space-between;
-      box-shadow: 0 4px 12px rgba(0,0,0,0.15); position: sticky; top: 0; z-index: 1000;
-    }
-    .brand { display: flex; align-items: center; gap: 12px; }
-    .brand-logo {
-      width: 45px; height: 45px; background: white; border-radius: 50%; padding: 4px;
-      display: flex; align-items: center; justify-content: center; box-shadow: 0 2px 5px rgba(0,0,0,0.2);
-    }
-    .brand-logo svg { width: 100%; height: 100%; }
-    .brand-title h1 { font-size: 1.2rem; font-weight: 700; letter-spacing: 0.5px; }
-    .brand-title span { font-size: 0.75rem; opacity: 0.9; }
-
-    .status-badge {
-      font-size: 0.8rem; padding: 6px 12px; border-radius: 20px; font-weight: 600;
-      display: flex; align-items: center; gap: 6px; background: rgba(255,255,255,0.2);
-    }
-    .status-badge.online { background: #4CAF50; }
-    .status-badge.offline { background: #E65100; }
-
-    .container { max-width: 1400px; margin: 0 auto; padding: 15px; }
-
-    .action-bar { display: flex; gap: 10px; margin-bottom: 20px; flex-wrap: wrap; }
-    .btn {
-      padding: 12px 20px; border: none; border-radius: 10px; font-weight: 600; font-size: 0.95rem;
-      cursor: pointer; display: flex; align-items: center; gap: 8px; transition: all 0.2s;
-      box-shadow: 0 2px 6px rgba(0,0,0,0.1);
-    }
-    .btn:active { transform: scale(0.98); }
-    .btn-primary { background-color: var(--green-agri); color: white; }
-    .btn-danger { background-color: var(--red-agri); color: white; }
-    .btn-outline { background-color: white; color: var(--text-dark); border: 1px solid var(--border-color); }
-
-    .kpi-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 15px; margin-bottom: 25px; }
-    .kpi-card {
-      background: var(--card-bg); border-radius: 12px; padding: 16px;
-      box-shadow: 0 2px 8px rgba(0,0,0,0.05); border-left: 5px solid var(--green-agri);
-      display: flex; flex-direction: column; justify-content: space-between;
-    }
-    .kpi-card.red { border-left-color: var(--red-agri); }
-    .kpi-card.yellow { border-left-color: var(--yellow-warn); }
-    .kpi-title { font-size: 0.8rem; font-weight: 700; color: var(--text-muted); text-transform: uppercase; }
-    .kpi-value { font-size: 1.8rem; font-weight: 800; margin: 8px 0; color: var(--text-dark); }
-    .kpi-sub { font-size: 0.75rem; color: var(--text-muted); }
-
-    .dashboard-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 20px; margin-bottom: 25px; }
-    .chart-card {
-      background: var(--card-bg); border-radius: 12px; padding: 18px;
-      box-shadow: 0 2px 8px rgba(0,0,0,0.05); height: 320px; display: flex; flex-direction: column;
-    }
-    .chart-card h3 { font-size: 1rem; margin-bottom: 12px; display: flex; align-items: center; gap: 8px; color: var(--green-agri); }
-    .chart-container { position: relative; flex: 1; width: 100%; height: 100%; }
-
-    .filter-card {
-      background: var(--card-bg); border-radius: 12px; padding: 18px; margin-bottom: 25px;
-      box-shadow: 0 2px 8px rgba(0,0,0,0.05);
-    }
-    .filter-card h3 { font-size: 1rem; margin-bottom: 15px; color: var(--green-agri); display: flex; align-items: center; gap: 8px; }
-    .filter-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 12px; }
-    .form-group { display: flex; flex-direction: column; gap: 5px; }
-    .form-group label { font-size: 0.75rem; font-weight: 700; color: var(--text-muted); }
-    .form-control { padding: 10px; border: 1px solid var(--border-color); border-radius: 8px; font-size: 0.9rem; outline: none; }
-    .form-control:focus { border-color: var(--green-agri); }
-
-    .alert-banner { display: flex; gap: 15px; margin-bottom: 20px; flex-wrap: wrap; }
-    .alert-pill { padding: 8px 16px; border-radius: 20px; font-weight: 700; font-size: 0.85rem; display: flex; align-items: center; gap: 8px; cursor: pointer; }
-    .pill-yellow { background: var(--yellow-light); color: #856404; border: 1px solid #ffeeba; }
-    .pill-red { background: var(--red-light); color: var(--red-agri); border: 1px solid #f5c6cb; }
-
-    .table-section {
-      background: var(--card-bg); border-radius: 12px; padding: 18px; margin-bottom: 25px;
-      box-shadow: 0 2px 8px rgba(0,0,0,0.05); overflow: hidden;
-    }
-    .table-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px; flex-wrap: wrap; gap: 10px; }
-    .table-header h3 { color: var(--green-agri); font-size: 1.1rem; }
-    .table-responsive { overflow-x: auto; max-height: 500px; }
-    table { width: 100%; border-collapse: collapse; font-size: 0.85rem; text-align: left; }
-    th, td { padding: 10px 12px; border-bottom: 1px solid var(--border-color); white-space: nowrap; }
-    th { background-color: #F8F9FA; position: sticky; top: 0; font-weight: 700; color: var(--text-dark); z-index: 10; }
-    tr:hover { background-color: #F1F8E9; }
-
-    .badge-status { padding: 4px 8px; border-radius: 6px; font-weight: 700; font-size: 0.75rem; text-align: center; display: inline-block; }
-    .st-asistio { background: var(--green-light); color: var(--green-agri); }
-    .st-falto { background: var(--red-light); color: var(--red-agri); }
-    .st-feriado { background: #E3F2FD; color: #1565C0; }
-    .st-inactivo { background: #ECEFF1; color: #455A64; }
-
-    .row-warn-yellow { background-color: #FFFDE7 !important; }
-    .row-warn-red { background-color: #FFEBEE !important; font-weight: 700; }
-
-    .modal {
-      display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%;
-      background: rgba(0,0,0,0.5); z-index: 2000; align-items: center; justify-content: center;
-    }
-    .modal.active { display: flex; }
-    .modal-content { background: white; border-radius: 12px; padding: 20px; width: 95%; max-width: 500px; max-height: 90vh; overflow-y: auto; }
-    .modal-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px; }
-    .modal-footer { margin-top: 20px; display: flex; justify-content: flex-end; gap: 10px; }
+    .badge-asistio { background-color: #dcfce7; color: #15803d; }
+    .badge-falto { background-color: #fee2e2; color: #b91c1c; }
+    .badge-feriado { background-color: #fef3c7; color: #b45309; }
+    .badge-inactivo { background-color: #f3f4f6; color: #4b5563; }
+    .alert-amarillo { background-color: #fef9c3; border-left: 4px solid #eab308; }
+    .alert-rojo { background-color: #fee2e2; border-left: 4px solid #ef4444; }
   </style>
 </head>
-<body>
+<body class="bg-gray-50 text-gray-800 font-sans pb-10">
 
-  <header>
-    <div class="brand">
-      <div class="brand-logo">
-        <svg viewBox="0 0 100 100" fill="none">
-          <path d="M50 10 C35 25 15 45 25 70 C35 95 65 95 75 70 C85 45 65 25 50 10 Z" fill="#2E7D32"/>
-          <path d="M50 20 C60 32 75 48 68 68 C61 88 39 88 32 68 C25 48 40 32 50 20 Z" fill="#D32F2F"/>
-          <path d="M20 50 Q 50 20 80 50" stroke="#FFFFFF" stroke-width="4" fill="none"/>
+  <!-- Header / Navbar -->
+  <header class="bg-white shadow-md sticky top-0 z-50">
+    <div class="max-w-7xl mx-auto px-4 py-3 flex justify-between items-center">
+      <div class="flex items-center space-x-3">
+        <!-- SVG / Logo Agrícola Huarmey incorporado en tonos rojo y verde -->
+        <svg class="h-10 w-10" viewBox="0 0 100 100">
+          <circle cx="50" cy="50" r="45" fill="none" stroke="#2e7d32" stroke-width="4"/>
+          <path d="M 30 65 C 30 35, 70 35, 70 65 C 60 75, 40 75, 30 65 Z" fill="#d32f2f"/>
+          <path d="M 45 20 C 35 30, 45 45, 55 35 C 65 25, 55 10, 45 20 Z" fill="#2e7d32"/>
         </svg>
+        <div>
+          <h1 class="text-xl font-bold text-gray-900 leading-none">Agrícola Huarmey</h1>
+          <span class="text-xs text-emerald-700 font-semibold">Gestión de Asistencia</span>
+        </div>
       </div>
-      <div class="brand-title">
-        <h1>Agrícola Huarmey</h1>
-        <span>Gestión de Asistencia Cosecha</span>
+      <div class="flex items-center gap-2">
+        <button id="btnSync" onclick="sincronizarDatos()" class="flex items-center gap-1 bg-emerald-600 hover:bg-emerald-700 text-white text-xs px-3 py-2 rounded-lg font-medium shadow-sm transition">
+          <i data-lucide="refresh-cw" class="w-4 h-4"></i> Sincronizar
+        </button>
       </div>
-    </div>
-    <div id="connectionStatus" class="status-badge online">
-      <i class="fas fa-wifi"></i> <span>Online</span>
     </div>
   </header>
 
-  <div class="container">
+  <main class="max-w-7xl mx-auto px-4 mt-6 space-y-6">
 
-    <div class="action-bar">
-      <button class="btn btn-primary" onclick="openModal()"><i class="fas fa-plus-circle"></i> Registrar Asistencia</button>
-      <button class="btn btn-outline" id="btnLoadSheets" onclick="loadFromSheets()"><i class="fas fa-download"></i> Cargar de Sheets</button>
-      <button class="btn btn-outline" id="btnSyncSheets" onclick="syncData()"><i class="fas fa-sync-alt"></i> Enviar a Google Sheets</button>
-      <button class="btn btn-outline" onclick="exportExcel()"><i class="fas fa-file-excel"></i> Exportar CSV</button>
-    </div>
-
-    <div class="kpi-grid">
-      <div class="kpi-card">
-        <span class="kpi-title">Personal Asistió</span>
-        <div class="kpi-value" id="kpiAsistio">0</div>
-        <span class="kpi-sub"><i class="fas fa-user-check text-success"></i> Presentes en campo</span>
-      </div>
-      <div class="kpi-card red">
-        <span class="kpi-title">Total Faltas (Alerta)</span>
-        <div class="kpi-value" id="kpiFalto">0</div>
-        <span class="kpi-sub"><i class="fas fa-user-times"></i> Faltas registradas</span>
-      </div>
-      <div class="kpi-card yellow">
-        <span class="kpi-title">Falta Marcación</span>
-        <div class="kpi-value" id="kpiFaltaMarcacion">0</div>
-        <span class="kpi-sub">Estado Asistencia</span>
-      </div>
-      <div class="kpi-card yellow">
-        <span class="kpi-title">Falta Tareo</span>
-        <div class="kpi-value" id="kpiFaltaTareo">0</div>
-        <span class="kpi-sub">Estado Asistencia</span>
-      </div>
-      <div class="kpi-card red">
-        <span class="kpi-title">Falta Tareo y Marcación</span>
-        <div class="kpi-value" id="kpiFaltaAmbos">0</div>
-        <span class="kpi-sub">Inconsistencia doble</span>
-      </div>
-    </div>
-
-    <div class="dashboard-grid">
-      <div class="chart-card">
-        <h3><i class="fas fa-venus-mars"></i> Distribución por Sexo</h3>
-        <div class="chart-container"><canvas id="chartSexo"></canvas></div>
-      </div>
-      <div class="chart-card">
-        <h3><i class="fas fa-history"></i> Histórico del Personal</h3>
-        <div class="chart-container"><canvas id="chartHistorico"></canvas></div>
-      </div>
-      <div class="chart-card">
-        <h3><i class="fas fa-bus"></i> Distribución por Modalidad</h3>
-        <div class="chart-container"><canvas id="chartModalidad"></canvas></div>
-      </div>
-    </div>
-
-    <div class="filter-card">
-      <h3><i class="fas fa-filter"></i> Filtros Principales</h3>
-      <div class="filter-grid">
-        <div class="form-group">
-          <label>DNI / Nombres</label>
-          <input type="text" id="filterSearch" class="form-control" placeholder="Buscar DNI o Nombre..." oninput="applyFilters()">
+    <!-- Tarjetas de Métricas (KPIs) -->
+    <div class="grid grid-cols-2 md:grid-cols-5 gap-3">
+      <div class="bg-white p-4 rounded-xl shadow-sm border border-gray-100 flex flex-col justify-between">
+        <span class="text-xs font-semibold text-gray-500 uppercase">Total Asistencias</span>
+        <div class="flex items-end justify-between mt-2">
+          <span id="kpi-asistencias" class="text-2xl font-bold text-emerald-600">0</span>
+          <i data-lucide="user-check" class="w-6 h-6 text-emerald-500"></i>
         </div>
-        <div class="form-group">
-          <label>Semana</label>
-          <select id="filterSemana" class="form-control" onchange="applyFilters()"><option value="">Todas</option></select>
+      </div>
+      <div class="bg-white p-4 rounded-xl shadow-sm border border-gray-100 flex flex-col justify-between">
+        <span class="text-xs font-semibold text-gray-500 uppercase">Faltas (Alerta)</span>
+        <div class="flex items-end justify-between mt-2">
+          <span id="kpi-faltas" class="text-2xl font-bold text-red-600">0</span>
+          <i data-lucide="user-x" class="w-6 h-6 text-red-500"></i>
         </div>
-        <div class="form-group">
-          <label>Mes</label>
-          <select id="filterMes" class="form-control" onchange="applyFilters()"><option value="">Todos</option></select>
+      </div>
+      <div class="bg-white p-4 rounded-xl shadow-sm border border-gray-100 flex flex-col justify-between">
+        <span class="text-xs font-semibold text-gray-500 uppercase">Falta Marcación</span>
+        <div class="flex items-end justify-between mt-2">
+          <span id="kpi-falta-marcacion" class="text-2xl font-bold text-amber-600">0</span>
+          <i data-lucide="clock-alert" class="w-6 h-6 text-amber-500"></i>
         </div>
-        <div class="form-group">
-          <label>Alerta</label>
-          <select id="filterAlerta" class="form-control" onchange="applyFilters()">
-            <option value="">Todas</option>
-            <option value="ASISTIO">ASISTIO</option>
-            <option value="FALTO">FALTO</option>
-          </select>
+      </div>
+      <div class="bg-white p-4 rounded-xl shadow-sm border border-gray-100 flex flex-col justify-between">
+        <span class="text-xs font-semibold text-gray-500 uppercase">Falta Tareo</span>
+        <div class="flex items-end justify-between mt-2">
+          <span id="kpi-falta-tareo" class="text-2xl font-bold text-amber-600">0</span>
+          <i data-lucide="clipboard-x" class="w-6 h-6 text-amber-500"></i>
         </div>
-        <div class="form-group">
-          <label>Estado Asistencia</label>
-          <select id="filterEstado" class="form-control" onchange="applyFilters()">
-            <option value="">Todos</option>
-            <option value="OK">OK</option>
-            <option value="FALTA MARCACION">FALTA MARCACION</option>
-            <option value="FALTA TAREO">FALTA TAREO</option>
-            <option value="FALTA TAREO Y FALTA MARCACION">FALTA TAREO Y MARCACION</option>
-          </select>
+      </div>
+      <div class="col-span-2 md:col-span-1 bg-white p-4 rounded-xl shadow-sm border border-gray-100 flex flex-col justify-between">
+        <span class="text-xs font-semibold text-gray-500 uppercase">Falta Tareo y Marcación</span>
+        <div class="flex items-end justify-between mt-2">
+          <span id="kpi-falta-ambos" class="text-2xl font-bold text-red-700">0</span>
+          <i data-lucide="alert-triangle" class="w-6 h-6 text-red-600"></i>
         </div>
       </div>
     </div>
 
-    <div class="alert-banner">
-      <div class="alert-pill pill-yellow" onclick="filterByFaltas(3)">
-        <i class="fas fa-exclamation-triangle"></i> Más de 3 Faltas en la Semana (Alerta Amarilla)
+    <!-- Dashboards Visuales -->
+    <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+      <div class="bg-white p-4 rounded-xl shadow-sm border border-gray-100">
+        <h3 class="text-sm font-bold text-gray-700 mb-3 flex items-center gap-2">
+          <i data-lucide="users" class="w-4 h-4 text-emerald-600"></i> Distribución por Sexo
+        </h3>
+        <div class="h-44 relative">
+          <canvas id="chartSexo"></canvas>
+        </div>
       </div>
-      <div class="alert-pill pill-red" onclick="filterByFaltas(6)">
-        <i class="fas fa-radiation"></i> 6 Faltas Consecutivas / Semana (Rojo - Retirar de Semana)
+
+      <div class="bg-white p-4 rounded-xl shadow-sm border border-gray-100">
+        <h3 class="text-sm font-bold text-gray-700 mb-3 flex items-center gap-2">
+          <i data-lucide="history" class="w-4 h-4 text-emerald-600"></i> Distribución Histórica
+        </h3>
+        <div class="h-44 relative">
+          <canvas id="chartHistorico"></canvas>
+        </div>
       </div>
-      <button class="btn btn-outline" style="padding: 4px 12px; font-size: 0.8rem;" onclick="resetFaltaFilter()">Mostrar Todos</button>
+
+      <div class="bg-white p-4 rounded-xl shadow-sm border border-gray-100">
+        <h3 class="text-sm font-bold text-gray-700 mb-3 flex items-center gap-2">
+          <i data-lucide="briefcase" class="w-4 h-4 text-emerald-600"></i> Modalidad Contratación
+        </h3>
+        <div class="h-44 relative">
+          <canvas id="chartModalidad"></canvas>
+        </div>
+      </div>
     </div>
 
-    <div class="table-section">
-      <div class="table-header">
-        <h3><i class="fas fa-calendar-alt"></i> Control Individual de Asistencia por Fecha Índice</h3>
-        <span style="font-size: 0.8rem; color: var(--text-muted);">Estados: ASISTIO, FALTO, FERIADO, INACTIVO</span>
+    <!-- Panel de Filtros -->
+    <div class="bg-white p-4 rounded-xl shadow-sm border border-gray-100 space-y-3">
+      <span class="text-xs font-bold text-gray-500 uppercase tracking-wider block">Filtros de Búsqueda</span>
+      <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-2">
+        <input type="text" id="filterBusqueda" oninput="aplicarFiltros()" placeholder="DNI o Nombres..." class="p-2 border rounded-lg text-sm w-full">
+        <select id="filterSemana" onchange="aplicarFiltros()" class="p-2 border rounded-lg text-sm w-full"><option value="">Todas las Semanas</option></select>
+        <select id="filterMes" onchange="aplicarFiltros()" class="p-2 border rounded-lg text-sm w-full"><option value="">Todos los Meses</option></select>
+        <input type="date" id="filterFecha" onchange="aplicarFiltros()" class="p-2 border rounded-lg text-sm w-full">
+        <select id="filterAlerta" onchange="aplicarFiltros()" class="p-2 border rounded-lg text-sm w-full">
+          <option value="">Todas las Alertas</option>
+          <option value="FALTO">FALTO</option>
+          <option value="ASISTIO">ASISTIO</option>
+        </select>
+        <select id="filterEstadoAsistencia" onchange="aplicarFiltros()" class="p-2 border rounded-lg text-sm w-full">
+          <option value="">Todo Estado Asistencia</option>
+          <option value="FALTA MARCACION">FALTA MARCACION</option>
+          <option value="FALTA TAREO">FALTA TAREO</option>
+          <option value="FALTA TAREO Y FALTA MARCACION">FALTA TAREO Y MARCACION</option>
+        </select>
       </div>
-      <div class="table-responsive">
-        <table id="matrixTable">
-          <thead></thead>
-          <tbody></tbody>
-        </table>
+      <div class="flex items-center gap-2 pt-2 border-t border-gray-100">
+        <span class="text-xs font-semibold text-gray-600">Inasistencias Acumuladas:</span>
+        <button onclick="filtrarFaltasSemana(3)" class="text-xs bg-amber-100 text-amber-800 font-medium px-2.5 py-1 rounded-md hover:bg-amber-200"> > 3 Faltas/Semana</button>
+        <button onclick="filtrarFaltasSemana(6)" class="text-xs bg-red-100 text-red-800 font-medium px-2.5 py-1 rounded-md hover:bg-red-200">6 Faltas/Semana (Eliminar)</button>
+        <button onclick="limpiarFiltros()" class="text-xs bg-gray-100 text-gray-600 font-medium px-2.5 py-1 rounded-md hover:bg-gray-200 ml-auto">Limpiar Filtros</button>
       </div>
     </div>
 
-    <div class="table-section">
-      <div class="table-header">
-        <h3><i class="fas fa-list-alt"></i> Detalle General de Asistencia (BD_ASISTENCIA)</h3>
-      </div>
-      <div class="table-responsive">
-        <table id="mainTable">
-          <thead>
-            <tr>
-              <th>DNI</th>
-              <th>Apellidos y Nombres</th>
-              <th>Semana</th>
-              <th>Mes</th>
-              <th>Día</th>
-              <th>Fecha Índice</th>
-              <th>Alerta</th>
-              <th>Estado Asistencia</th>
-              <th>Histórico</th>
-              <th>Modalidad</th>
-              <th>Placa</th>
-              <th>Ruta</th>
-              <th>Sexo</th>
-              <th>Acción</th>
+    <!-- Vista Matrix: DNI vs FECHA INDICE -->
+    <div class="bg-white p-4 rounded-xl shadow-sm border border-gray-100 overflow-hidden">
+      <h3 class="text-sm font-bold text-gray-700 mb-3 flex items-center gap-2">
+        <i data-lucide="calendar" class="w-4 h-4 text-emerald-600"></i> Matriz de Asistencia Individual por Fecha
+      </h3>
+      <div class="overflow-x-auto">
+        <table class="w-full text-xs text-left" id="tablaMatriz">
+          <thead class="bg-gray-50 text-gray-600 uppercase">
+            <tr id="matrizHeader">
+              <th class="p-2 border">DNI / Personal</th>
             </tr>
           </thead>
-          <tbody></tbody>
+          <tbody id="matrizBody" class="divide-y divide-gray-100">
+            <!-- Render dinámico -->
+          </tbody>
         </table>
       </div>
     </div>
 
-  </div>
-
-  <div class="modal" id="recordModal">
-    <div class="modal-content">
-      <div class="modal-header">
-        <h3 style="color: var(--green-agri);">Nuevo Registro de Asistencia</h3>
-        <i class="fas fa-times" style="cursor:pointer;" onclick="closeModal()"></i>
+    <!-- Tabla General de Registro -->
+    <div class="bg-white p-4 rounded-xl shadow-sm border border-gray-100 overflow-hidden">
+      <h3 class="text-sm font-bold text-gray-700 mb-3 flex items-center gap-2">
+        <i data-lucide="table" class="w-4 h-4 text-emerald-600"></i> Detalle Completo de Registros
+      </h3>
+      <div class="overflow-x-auto">
+        <table class="w-full text-xs text-left border-collapse">
+          <thead class="bg-gray-100 text-gray-700 font-semibold uppercase">
+            <tr>
+              <th class="p-2 border">DNI</th>
+              <th class="p-2 border">Apellidos y Nombres</th>
+              <th class="p-2 border">Sem.</th>
+              <th class="p-2 border">Mes</th>
+              <th class="p-2 border">Día</th>
+              <th class="p-2 border">Fecha Índice</th>
+              <th class="p-2 border">Alerta</th>
+              <th class="p-2 border">Estado Asistencia</th>
+              <th class="p-2 border">Histórico</th>
+              <th class="p-2 border">Modalidad</th>
+              <th class="p-2 border">Placa</th>
+              <th class="p-2 border">Ruta</th>
+              <th class="p-2 border">Sexo</th>
+            </tr>
+          </thead>
+          <tbody id="tablaDetalle" class="divide-y divide-gray-100">
+            <!-- Render dinámico -->
+          </tbody>
+        </table>
       </div>
-      <form id="attendanceForm" onsubmit="saveRecord(event)">
-        <div class="form-group" style="margin-bottom:10px;">
-          <label>DNI</label>
-          <input type="text" id="mDni" class="form-control" required placeholder="8 dígitos">
-        </div>
-        <div class="form-group" style="margin-bottom:10px;">
-          <label>Apellidos y Nombres</label>
-          <input type="text" id="mNombres" class="form-control" required>
-        </div>
-        <div class="form-group" style="margin-bottom:10px;">
-          <label>Fecha Índice</label>
-          <input type="date" id="mFecha" class="form-control" required>
-        </div>
-        <div class="form-group" style="margin-bottom:10px;">
-          <label>Alerta</label>
-          <select id="mAlerta" class="form-control" required>
-            <option value="ASISTIO">ASISTIO</option>
-            <option value="FALTO">FALTO</option>
-            <option value="FERIADO">FERIADO</option>
-            <option value="INACTIVO">INACTIVO</option>
-          </select>
-        </div>
-        <div class="form-group" style="margin-bottom:10px;">
-          <label>Estado Asistencia</label>
-          <select id="mEstado" class="form-control" required>
-            <option value="OK">OK</option>
-            <option value="FALTA MARCACION">FALTA MARCACION</option>
-            <option value="FALTA TAREO">FALTA TAREO</option>
-            <option value="FALTA TAREO Y FALTA MARCACION">FALTA TAREO Y MARCACION</option>
-          </select>
-        </div>
-        <div class="form-group" style="margin-bottom:10px;">
-          <label>Modalidad</label>
-          <select id="mModalidad" class="form-control">
-            <option value="CONTRATADO">CONTRATADO</option>
-            <option value="DICE">DICE</option>
-            <option value="TERCERO">TERCERO</option>
-          </select>
-        </div>
-        <div class="form-group" style="margin-bottom:10px;">
-          <label>Sexo</label>
-          <select id="mSexo" class="form-control">
-            <option value="M">MASCULINO (M)</option>
-            <option value="F">FEMENINO (F)</option>
-          </select>
-        </div>
-        <div class="modal-footer">
-          <button type="button" class="btn btn-outline" onclick="closeModal()">Cancelar</button>
-          <button type="submit" class="btn btn-primary">Guardar Registro</button>
-        </div>
-      </form>
     </div>
-  </div>
+
+  </main>
 
   <script>
-    // URL DE TU IMPLEMENTACION EN GOOGLE APPS SCRIPT
-    // Asegúrate de que termine en /exec
-    const GAS_WEB_APP_URL = "https://script.google.com/macros/s/AKfycbzEqEGBAyA558d01HK1bbhDJa9Xkpgoy5ZCP3NRWEloxduP99HPyRW2EG6Q5sfP4m4R/exec";
-
+    const GAS_URL = "https://script.google.com/macros/s/AKfycbxGMTUNnXsvF8cOe8U-GgKCgzar4JQHAWXm9AhzWQ68d-zrXM91KfZ2g_b_-eqBr3pb/exec";
     let dbData = [];
     let filteredData = [];
-    let chartSexoObj = null, chartHistObj = null, chartModObj = null;
-    let selectedFaltaFilter = 0;
+    let charts = {};
 
-    let indexedDB = window.indexedDB || window.mozIndexedDB || window.webkitIndexedDB;
-    let db;
-
-    function initDB() {
-      let request = indexedDB.open("AgricolaHuarmeyDB", 1);
-      request.onupgradeneeded = function(e) {
-        db = e.target.result;
-        if (!db.objectStoreNames.contains("asistencia")) {
-          db.createObjectStore("asistencia", { keyPath: "id", autoIncrement: true });
-        }
-      };
-      request.onsuccess = function(e) {
-        db = e.target.result;
-        loadLocalData();
-      };
-    }
-
-    window.addEventListener('DOMContentLoaded', () => {
-      initDB();
-      initCharts();
-      renderAll();
-      registerSW();
-
-      // Cargar automáticamente de Google Sheets al iniciar si la URL está configurada
-      if (navigator.onLine && !GAS_WEB_APP_URL.includes("REEMPLAZAR_POR_TU_ID_DE_DESPLIEGUE")) {
-        loadFromSheets(true);
+    // Inicialización de la App
+    document.addEventListener("DOMContentLoaded", () => {
+      lucide.createIcons();
+      initDB().then(() => {
+        cargarDatosLocal();
+        sincronizarDatos();
+      });
+      
+      if ('serviceWorker' in navigator) {
+        navigator.serviceWorker.register('service-worker.js');
       }
     });
 
-    function registerSW() {
-      if ('serviceWorker' in navigator) {
-        navigator.serviceWorker.register('service-worker.js')
-          .then(() => console.log('SW activo'))
-          .catch(err => console.error('Error SW', err));
+    // Configuración IndexedDB Offline
+    function initDB() {
+      return new Promise((resolve, reject) => {
+        const request = indexedDB.open("AgricolaHuarmeyDB", 1);
+        request.onupgradeneeded = (e) => {
+          const db = e.target.result;
+          if (!db.objectStoreNames.contains("asistencia")) {
+            db.createObjectStore("asistencia", { keyPath: "id", autoIncrement: true });
+          }
+        };
+        request.onsuccess = () => resolve(request.result);
+        request.onerror = (e) => reject(e);
+      });
+    }
+
+    async function guardarLocal(datos) {
+      const db = await initDB();
+      const tx = db.transaction("asistencia", "readwrite");
+      const store = tx.objectStore("asistencia");
+      store.clear();
+      datos.forEach(item => store.add(item));
+    }
+
+    async function cargarDatosLocal() {
+      const db = await initDB();
+      const tx = db.transaction("asistencia", "readonly");
+      const store = tx.objectStore("asistencia");
+      const req = store.getAll();
+      req.onsuccess = () => {
+        if(req.result.length > 0) {
+          dbData = req.result;
+          procesarYRenderizar(dbData);
+        }
+      };
+    }
+
+    // Sincronización con Backend Apps Script
+    async function sincronizarDatos() {
+      try {
+        const res = await fetch(GAS_URL);
+        const json = await res.json();
+        if(json.status === "success") {
+          dbData = json.data;
+          await guardarLocal(dbData);
+          procesarYRenderizar(dbData);
+        }
+      } catch (err) {
+        console.warn("Modo Offline activo o error de conexión:", err);
       }
     }
 
-    window.addEventListener('online', updateStatus);
-    window.addEventListener('offline', updateStatus);
-
-    function updateStatus() {
-      const el = document.getElementById('connectionStatus');
-      if (navigator.onLine) {
-        el.className = "status-badge online";
-        el.innerHTML = '<i class="fas fa-wifi"></i> <span>Online</span>';
-      } else {
-        el.className = "status-badge offline";
-        el.innerHTML = '<i class="fas fa-signal-slash"></i> <span>Offline</span>';
-      }
+    // Procesamiento y Renderizado de UI
+    function procesarYRenderizar(data) {
+      filteredData = [...data];
+      poblarFiltros(data);
+      renderKpis(filteredData);
+      renderCharts(filteredData);
+      renderMatriz(filteredData);
+      renderTabla(filteredData);
     }
 
-    function renderAll() {
-      updateKPIs();
-      updateCharts();
-      renderMatrixTable();
-      renderMainTable();
-    }
-
-    function updateKPIs() {
-      let totalAsistio = filteredData.filter(d => d.alerta === 'ASISTIO').length;
-      let totalFalto = filteredData.filter(d => d.alerta === 'FALTO').length;
-      let totalFaltaMarcacion = filteredData.filter(d => d.estado === 'FALTA MARCACION').length;
-      let totalFaltaTareo = filteredData.filter(d => d.estado === 'FALTA TAREO').length;
-      let totalFaltaAmbos = filteredData.filter(d => d.estado === 'FALTA TAREO Y FALTA MARCACION' || d.estado === 'FALTA TAREO Y MARCACION').length;
-
-      document.getElementById('kpiAsistio').innerText = totalAsistio;
-      document.getElementById('kpiFalto').innerText = totalFalto;
-      document.getElementById('kpiFaltaMarcacion').innerText = totalFaltaMarcacion;
-      document.getElementById('kpiFaltaTareo').innerText = totalFaltaTareo;
-      document.getElementById('kpiFaltaAmbos').innerText = totalFaltaAmbos;
-    }
-
-    function initCharts() {
-      const ctxSexo = document.getElementById('chartSexo').getContext('2d');
-      chartSexoObj = new Chart(ctxSexo, {
-        type: 'doughnut',
-        data: { labels: ['Masculino (M)', 'Femenino (F)'], datasets: [{ data: [0,0], backgroundColor: ['#2E7D32', '#E91E63'] }] },
-        options: { responsive: true, maintainAspectRatio: false }
+    function renderKpis(data) {
+      let asistencias = 0, faltas = 0, faltaMarc = 0, faltaTareo = 0, faltaAmbos = 0;
+      
+      data.forEach(item => {
+        if (item.ALERTA === "ASISTIO") asistencias++;
+        if (item.ALERTA === "FALTO") faltas++;
+        
+        const est = item.ESTADO_ASISTENCIA || "";
+        if (est === "FALTA MARCACION") faltaMarc++;
+        if (est === "FALTA TAREO") faltaTareo++;
+        if (est === "FALTA TAREO Y FALTA MARCACION") faltaAmbos++;
       });
 
-      const ctxHist = document.getElementById('chartHistorico').getContext('2d');
-      chartHistObj = new Chart(ctxHist, {
-        type: 'bar',
-        data: { labels: [], datasets: [{ label: 'Personal', data: [], backgroundColor: '#D32F2F' }] },
+      document.getElementById("kpi-asistencias").innerText = asistencias;
+      document.getElementById("kpi-faltas").innerText = faltas;
+      document.getElementById("kpi-falta-marcacion").innerText = faltaMarc;
+      document.getElementById("kpi-falta-tareo").innerText = faltaTareo;
+      document.getElementById("kpi-falta-ambos").innerText = faltaAmbos;
+    }
+
+    function renderCharts(data) {
+      const getCounts = (key) => data.reduce((acc, curr) => {
+        const val = curr[key] || "Desconocido";
+        acc[val] = (acc[val] || 0) + 1;
+        return acc;
+      }, {});
+
+      const sexoCounts = getCounts("SEXO");
+      const histCounts = getCounts("HISTORICO");
+      const modCounts = getCounts("MODALIDAD");
+
+      createChart("chartSexo", "doughnut", ["MASCULINO", "FEMENINO"], [sexoCounts["M"] || 0, sexoCounts["F"] || 0], ["#d32f2f", "#2e7d32"]);
+      createChart("chartHistorico", "bar", Object.keys(histCounts), Object.values(histCounts), "#2e7d32");
+      createChart("chartModalidad", "pie", Object.keys(modCounts), Object.values(modCounts), ["#d32f2f", "#4caf50", "#ff9800"]);
+    }
+
+    function createChart(canvasId, type, labels, data, colors) {
+      if (charts[canvasId]) charts[canvasId].destroy();
+      const ctx = document.getElementById(canvasId).getContext("2d");
+      charts[canvasId] = new Chart(ctx, {
+        type: type,
+        data: {
+          labels: labels,
+          datasets: [{ data: data, backgroundColor: colors }]
+        },
         options: { responsive: true, maintainAspectRatio: false }
       });
-
-      const ctxMod = document.getElementById('chartModalidad').getContext('2d');
-      chartModObj = new Chart(ctxMod, {
-        type: 'pie',
-        data: { labels: [], datasets: [{ data: [], backgroundColor: ['#4CAF50', '#FF9800', '#2196F3', '#9C27B0'] }] },
-        options: { responsive: true, maintainAspectRatio: false }
-      });
     }
 
-    function updateCharts() {
-      let mCount = filteredData.filter(d => d.sexo === 'M').length;
-      let fCount = filteredData.filter(d => d.sexo === 'F').length;
-      chartSexoObj.data.datasets[0].data = [mCount, fCount];
-      chartSexoObj.update();
+    function poblarFiltros(data) {
+      const semanas = [...new Set(data.map(i => i.SEMANA))].sort();
+      const meses = [...new Set(data.map(i => i.MES))].sort();
+      
+      const selSemana = document.getElementById("filterSemana");
+      const selMes = document.getElementById("filterMes");
 
-      let histMap = {};
-      filteredData.forEach(d => { histMap[d.historico || 'N/A'] = (histMap[d.historico || 'N/A'] || 0) + 1; });
-      chartHistObj.data.labels = Object.keys(histMap);
-      chartHistObj.data.datasets[0].data = Object.values(histMap);
-      chartHistObj.update();
-
-      let modMap = {};
-      filteredData.forEach(d => { modMap[d.modalidad || 'N/A'] = (modMap[d.modalidad || 'N/A'] || 0) + 1; });
-      chartModObj.data.labels = Object.keys(modMap);
-      chartModObj.data.datasets[0].data = Object.values(modMap);
-      chartModObj.update();
+      selSemana.innerHTML = '<option value="">Todas las Semanas</option>' + semanas.map(s => `<option value="${s}">Semana ${s}</option>`).join("");
+      selMes.innerHTML = '<option value="">Todos los Meses</option>' + meses.map(m => `<option value="${m}">${m}</option>`).join("");
     }
 
-    function populateDropdowns() {
-      const semanas = [...new Set(dbData.map(d => d.semana))].filter(Boolean);
-      const meses = [...new Set(dbData.map(d => d.mes))].filter(Boolean);
-
-      const selSemana = document.getElementById('filterSemana');
-      selSemana.innerHTML = '<option value="">Todas</option>' + semanas.map(s => `<option value="${s}">${s}</option>`).join('');
-
-      const selMes = document.getElementById('filterMes');
-      selMes.innerHTML = '<option value="">Todos</option>' + meses.map(m => `<option value="${m}">${m}</option>`).join('');
-    }
-
-    function applyFilters() {
-      const search = document.getElementById('filterSearch').value.toLowerCase();
-      const semana = document.getElementById('filterSemana').value;
-      const mes = document.getElementById('filterMes').value;
-      const alerta = document.getElementById('filterAlerta').value;
-      const estado = document.getElementById('filterEstado').value;
+    function aplicarFiltros() {
+      const busqueda = document.getElementById("filterBusqueda").value.toLowerCase();
+      const semana = document.getElementById("filterSemana").value;
+      const mes = document.getElementById("filterMes").value;
+      const fecha = document.getElementById("filterFecha").value;
+      const alerta = document.getElementById("filterAlerta").value;
+      const estAsist = document.getElementById("filterEstadoAsistencia").value;
 
       filteredData = dbData.filter(item => {
-        const matchSearch = String(item.dni).toLowerCase().includes(search) || String(item.nombres).toLowerCase().includes(search);
-        const matchSemana = !semana || item.semana === semana;
-        const matchMes = !mes || item.mes === mes;
-        const matchAlerta = !alerta || item.alerta === alerta;
-        const matchEstado = !estado || item.estado === estado;
-        return matchSearch && matchSemana && matchMes && matchAlerta && matchEstado;
+        const matchBusqueda = (item.DNI || "").toLowerCase().includes(busqueda) || (item.APELLIDOS_NOMBRES || "").toLowerCase().includes(busqueda);
+        const matchSemana = !semana || item.SEMANA == semana;
+        const matchMes = !mes || item.MES == mes;
+        const matchFecha = !fecha || item.FECHA_INDICE == fecha;
+        const matchAlerta = !alerta || item.ALERTA == alerta;
+        const matchEstado = !estAsist || item.ESTADO_ASISTENCIA == estAsist;
+
+        return matchBusqueda && matchSemana && matchMes && matchFecha && matchAlerta && matchEstado;
       });
 
-      if (selectedFaltaFilter > 0) {
-        filterByFaltas(selectedFaltaFilter);
-      } else {
-        renderAll();
-      }
+      renderKpis(filteredData);
+      renderCharts(filteredData);
+      renderMatriz(filteredData);
+      renderTabla(filteredData);
     }
 
-    function filterByFaltas(limit) {
-      selectedFaltaFilter = limit;
-      let faltaCounts = {};
-      dbData.forEach(d => {
-        if (d.alerta === 'FALTO') {
-          faltaCounts[d.dni] = (faltaCounts[d.dni] || 0) + 1;
+    function filtrarFaltasSemana(limite) {
+      const contadorFaltas = {};
+      dbData.forEach(i => {
+        if(i.ALERTA === "FALTO") {
+          const key = `${i.DNI}_${i.SEMANA}`;
+          contadorFaltas[key] = (contadorFaltas[key] || 0) + 1;
         }
       });
 
-      filteredData = dbData.filter(d => {
-        let count = faltaCounts[d.dni] || 0;
-        return limit === 3 ? count > 3 : count >= 6;
+      filteredData = dbData.filter(i => {
+        const key = `${i.DNI}_${i.SEMANA}`;
+        const faltas = contadorFaltas[key] || 0;
+        return limite === 3 ? (faltas > 3 && faltas < 6) : faltas >= 6;
       });
 
-      renderAll();
+      renderKpis(filteredData);
+      renderCharts(filteredData);
+      renderMatriz(filteredData);
+      renderTabla(filteredData);
     }
 
-    function resetFaltaFilter() {
-      selectedFaltaFilter = 0;
-      applyFilters();
+    function limpiarFiltros() {
+      document.getElementById("filterBusqueda").value = "";
+      document.getElementById("filterSemana").value = "";
+      document.getElementById("filterMes").value = "";
+      document.getElementById("filterFecha").value = "";
+      document.getElementById("filterAlerta").value = "";
+      document.getElementById("filterEstadoAsistencia").value = "";
+      procesarYRenderizar(dbData);
     }
 
-    function renderMatrixTable() {
-      const uniqueFechas = [...new Set(filteredData.map(d => d.fecha))].filter(Boolean).sort();
-      const uniquePersons = {};
+    // Render Matrix FECHA_INDICE
+    function renderMatriz(data) {
+      const fechas = [...new Set(data.map(i => i.FECHA_INDICE))].sort();
+      const empleados = [...new Set(data.map(i => JSON.stringify({ dni: i.DNI, nombre: i.APELLIDOS_NOMBRES })))].map(i => JSON.parse(i));
 
-      filteredData.forEach(d => {
-        if (!uniquePersons[d.dni]) {
-          uniquePersons[d.dni] = { nombres: d.nombres, asistencia: {} };
-        }
-        uniquePersons[d.dni].asistencia[d.fecha] = d.alerta;
-      });
+      const headerRow = document.getElementById("matrizHeader");
+      headerRow.innerHTML = '<th class="p-2 border bg-gray-100">DNI / Personal</th>' + fechas.map(f => `<th class="p-2 border bg-gray-100 text-center">${f}</th>`).join("");
 
-      let theadHtml = `<tr><th>DNI</th><th>Apellidos y Nombres</th>`;
-      uniqueFechas.forEach(f => { theadHtml += `<th>${f}</th>`; });
-      theadHtml += `</tr>`;
-      document.querySelector('#matrixTable thead').innerHTML = theadHtml;
+      const body = document.getElementById("matrizBody");
+      body.innerHTML = empleados.map(emp => {
+        const celdasFechas = fechas.map(f => {
+          const reg = data.find(d => d.DNI === emp.dni && d.FECHA_INDICE === f);
+          const estado = reg ? reg.ESTADO_MATRIZ || (reg.ALERTA === "ASISTIO" ? "ASISTIO" : "FALTO") : "INACTIVO";
+          
+          let badgeClass = "badge-inactivo";
+          if (estado === "ASISTIO") badgeClass = "badge-asistio";
+          if (estado === "FALTO") badgeClass = "badge-falto";
+          if (estado === "FERIADO") badgeClass = "badge-feriado";
 
-      let tbodyHtml = '';
-      Object.keys(uniquePersons).forEach(dni => {
-        let p = uniquePersons[dni];
-        tbodyHtml += `<tr><td>${dni}</td><td><strong>${p.nombres}</strong></td>`;
-        uniqueFechas.forEach(f => {
-          let st = p.asistencia[f] || 'INACTIVO';
-          let badgeClass = 'st-inactivo';
-          if (st === 'ASISTIO') badgeClass = 'st-asistio';
-          else if (st === 'FALTO') badgeClass = 'st-falto';
-          else if (st === 'FERIADO') badgeClass = 'st-feriado';
+          return `<td class="p-2 border text-center"><span class="px-2 py-0.5 rounded-full text-[10px] font-bold ${badgeClass}">${estado}</span></td>`;
+        }).join("");
 
-          tbodyHtml += `<td><span class="badge-status ${badgeClass}">${st}</span></td>`;
-        });
-        tbodyHtml += `</tr>`;
-      });
-      document.querySelector('#matrixTable tbody').innerHTML = tbodyHtml;
+        return `<tr><td class="p-2 border font-medium">${emp.dni} - ${emp.nombre}</td>${celdasFechas}</tr>`;
+      }).join("");
     }
 
-    function renderMainTable() {
-      let faltasMap = {};
-      dbData.forEach(d => {
-        if (d.alerta === 'FALTO') faltasMap[d.dni] = (faltasMap[d.dni] || 0) + 1;
-      });
+    // Render Tabla Detalle
+    function renderTabla(data) {
+      const tbody = document.getElementById("tablaDetalle");
+      tbody.innerHTML = data.map(item => {
+        let alertClass = "";
+        if (item.FALTAS_SEMANA > 3 && item.FALTAS_SEMANA < 6) alertClass = "alert-amarillo";
+        if (item.FALTAS_SEMANA >= 6) alertClass = "alert-rojo";
 
-      let tbody = document.querySelector('#mainTable tbody');
-      tbody.innerHTML = '';
-
-      filteredData.forEach((d) => {
-        let tr = document.createElement('tr');
-        let fCount = faltasMap[d.dni] || 0;
-
-        if (fCount >= 6) {
-          tr.className = 'row-warn-red';
-        } else if (fCount > 3) {
-          tr.className = 'row-warn-yellow';
-        }
-
-        tr.innerHTML = `
-          <td>${d.dni}</td>
-          <td>${d.nombres}</td>
-          <td>${d.semana}</td>
-          <td>${d.mes}</td>
-          <td>${d.dia}</td>
-          <td>${d.fecha}</td>
-          <td><span class="badge-status ${d.alerta==='ASISTIO'?'st-asistio':'st-falto'}">${d.alerta}</span></td>
-          <td>${d.estado}</td>
-          <td>${d.historico || 'N/A'}</td>
-          <td>${d.modalidad}</td>
-          <td>${d.placa || '-'}</td>
-          <td>${d.ruta || '-'}</td>
-          <td><i class="fas fa-${d.sexo==='M'?'mars text-primary':'venus text-danger'}"></i> ${d.sexo}</td>
-          <td>
-            ${fCount >= 6 ? `<button class="btn btn-danger" style="padding:4px 8px; font-size:0.7rem;" onclick="removeWorkerSemana('${d.dni}')"><i class="fas fa-user-slash"></i> Eliminar Semana</button>` : '-'}
-          </td>
+        return `
+          <tr class="${alertClass} hover:bg-gray-50">
+            <td class="p-2 border font-mono">${item.DNI || ''}</td>
+            <td class="p-2 border font-medium">${item.APELLIDOS_NOMBRES || ''}</td>
+            <td class="p-2 border text-center">${item.SEMANA || ''}</td>
+            <td class="p-2 border text-center">${item.MES || ''}</td>
+            <td class="p-2 border text-center">${item.DIA || ''}</td>
+            <td class="p-2 border text-center font-mono">${item.FECHA_INDICE || ''}</td>
+            <td class="p-2 border text-center">
+              <span class="px-2 py-0.5 rounded-md text-[10px] font-bold ${item.ALERTA === 'ASISTIO' ? 'bg-emerald-100 text-emerald-800' : 'bg-red-100 text-red-800'}">
+                ${item.ALERTA || ''}
+              </span>
+            </td>
+            <td class="p-2 border">${item.ESTADO_ASISTENCIA || ''}</td>
+            <td class="p-2 border">${item.HISTORICO || ''}</td>
+            <td class="p-2 border">${item.MODALIDAD || ''}</td>
+            <td class="p-2 border font-mono">${item.PLACA || ''}</td>
+            <td class="p-2 border">${item.RUTA || ''}</td>
+            <td class="p-2 border text-center">${item.SEXO || ''}</td>
+          </tr>
         `;
-        tbody.appendChild(tr);
-      });
-    }
-
-    function removeWorkerSemana(dni) {
-      if (confirm(`¿Desea retirar al colaborador con DNI ${dni}?`)) {
-        dbData = dbData.filter(d => d.dni !== dni);
-        applyFilters();
-      }
-    }
-
-    function openModal() { document.getElementById('recordModal').classList.add('active'); }
-    function closeModal() { document.getElementById('recordModal').classList.remove('active'); }
-
-    function saveRecord(e) {
-      e.preventDefault();
-      const rawDate = document.getElementById('mFecha').value;
-      const dateObj = new Date(rawDate + "T00:00:00");
-
-      const rec = {
-        dni: document.getElementById('mDni').value,
-        nombres: document.getElementById('mNombres').value.toUpperCase(),
-        semana: "S" + getWeekNumber(dateObj),
-        mes: dateObj.toLocaleString('es-ES', { month: 'long' }).toUpperCase(),
-        dia: dateObj.toLocaleString('es-ES', { weekday: 'long' }).toUpperCase(),
-        fecha: rawDate,
-        alerta: document.getElementById('mAlerta').value,
-        estado: document.getElementById('mEstado').value,
-        historico: "REGISTRADO",
-        modalidad: document.getElementById('mModalidad').value,
-        placa: "CAMPO-01",
-        ruta: "RUTA LOCAL",
-        sexo: document.getElementById('mSexo').value
-      };
-
-      dbData.push(rec);
-      saveLocalData(rec);
-      closeModal();
-      populateDropdowns();
-      applyFilters();
-    }
-
-    function getWeekNumber(d) {
-      d = new Date(Date.UTC(d.getFullYear(), d.getMonth(), d.getDate()));
-      d.setUTCDate(d.getUTCDate() + 4 - (d.getUTCDay() || 7));
-      var yearStart = new Date(Date.UTC(d.getUTCFullYear(), 0, 1));
-      return Math.ceil((((d - yearStart) / 86400000) + 1) / 7);
-    }
-
-    function saveLocalData(rec) {
-      if (!db) return;
-      let tx = db.transaction("asistencia", "readwrite");
-      tx.objectStore("asistencia").add(rec);
-    }
-
-    function loadLocalData() {
-      if (!db) return;
-      let tx = db.transaction("asistencia", "readonly");
-      let req = tx.objectStore("asistencia").getAll();
-      req.onsuccess = function() {
-        if (req.result && req.result.length > 0 && dbData.length === 0) {
-          dbData = req.result;
-          populateDropdowns();
-          applyFilters();
-        }
-      };
-    }
-
-    // ==========================================
-    // FUNCIÓN DE CONEXIÓN Y CARGA DESDE GOOGLE SHEETS
-    // ==========================================
-    function loadFromSheets(silent) {
-      if (!navigator.onLine) {
-        if (!silent) alert("Sin conexión a Internet.");
-        return;
-      }
-
-      if (!GAS_WEB_APP_URL || GAS_WEB_APP_URL.includes("REEMPLAZAR_POR_TU_ID_DE_DESPLIEGUE")) {
-        if (!silent) alert("Por favor reemplaza GAS_WEB_APP_URL con el enlace de tu Apps Script.");
-        return;
-      }
-
-      const btn = document.getElementById('btnLoadSheets');
-      if (btn) btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Cargando...';
-
-      // Intento 1: Fetch directo
-      fetch(GAS_WEB_APP_URL)
-        .then(res => res.json())
-        .then(res => processSheetsData(res, silent, btn))
-        .catch(err => {
-          console.warn("Fetch directo bloqueado o con fallo. Intentando JSONP Fallback...", err);
-          // Intento 2: Carga mediante script dinámico (Evasión de CORS)
-          loadViaJSONP(GAS_WEB_APP_URL, (res) => processSheetsData(res, silent, btn));
-        });
-    }
-
-    function processSheetsData(res, silent, btn) {
-      if (btn) btn.innerHTML = '<i class="fas fa-download"></i> Cargar de Sheets';
-
-      if (res && res.status === 'success' && Array.isArray(res.data)) {
-        dbData = res.data.map(item => ({
-          dni: String(item["DNI"] || ""),
-          nombres: item["APELLIDOS Y NOMBRES"] || "",
-          semana: item["SEMANA"] || "",
-          mes: item["MES"] || "",
-          dia: item["DIA"] || "",
-          fecha: item["FECHA INDICE"] || "",
-          alerta: item["ALERTA"] || "",
-          estado: item["ESTADO ASISTENCIA"] || "",
-          historico: item["HISTORICO"] || "ACTIVO",
-          modalidad: item["MODALIDAD"] || "",
-          placa: item["PLACA"] || "-",
-          ruta: item["RUTA"] || "-",
-          sexo: item["SEXO"] || ""
-        }));
-
-        populateDropdowns();
-        applyFilters();
-
-        if (!silent) {
-          alert(`¡Éxito! Se cargaron ${dbData.length} registros desde Google Sheets.`);
-        }
-      } else {
-        if (!silent) alert("Respuesta recibida pero no contiene registros vacíos o correctos.");
-      }
-    }
-
-    function loadViaJSONP(url, callback) {
-      const callbackName = 'gas_cb_' + Math.round(100000 * Math.random());
-      window[callbackName] = function(data) {
-        delete window[callbackName];
-        document.body.removeChild(script);
-        callback(data);
-      };
-
-      const script = document.createElement('script');
-      script.src = url + (url.indexOf('?') >= 0 ? '&' : '?') + 'callback=' + callbackName;
-      script.onerror = function() {
-        alert("Error crítico de conexión: Asegúrate de haber publicado Apps Script con acceso a 'Cualquiera' (Anyone).");
-        document.getElementById('btnLoadSheets').innerHTML = '<i class="fas fa-download"></i> Cargar de Sheets';
-      };
-      document.body.appendChild(script);
-    }
-
-    // ==========================================
-    // FUNCIÓN DE ENVÍO Y SINCRONIZACIÓN
-    // ==========================================
-    function syncData() {
-      if (!navigator.onLine) {
-        alert("Sin conexión a Internet.");
-        return;
-      }
-
-      if (!GAS_WEB_APP_URL || GAS_WEB_APP_URL.includes("REEMPLAZAR_POR_TU_ID_DE_DESPLIEGUE")) {
-        alert("Configura correctamente la constante GAS_WEB_APP_URL.");
-        return;
-      }
-
-      const btn = document.getElementById('btnSyncSheets');
-      if (btn) btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Enviando...';
-
-      const payload = {
-        action: 'syncData',
-        data: dbData
-      };
-
-      fetch(GAS_WEB_APP_URL, {
-        method: 'POST',
-        headers: { 'Content-Type': 'text/plain;charset=utf-8' },
-        body: JSON.stringify(payload)
-      })
-      .then(response => response.json())
-      .then(res => {
-        if (btn) btn.innerHTML = '<i class="fas fa-sync-alt"></i> Enviar a Google Sheets';
-        if (res.status === 'success') {
-          alert('¡Sincronización completada! Los registros fueron guardados en Google Sheets.');
-        } else {
-          alert('Error devuelto por la Hoja: ' + res.message);
-        }
-      })
-      .catch(err => {
-        if (btn) btn.innerHTML = '<i class="fas fa-sync-alt"></i> Enviar a Google Sheets';
-        console.error('Error al sincronizar:', err);
-        alert('Ocurrió un error al enviar los datos. Revisa la consola y los permisos de publicación en Apps Script.');
-      });
-    }
-
-    function exportExcel() {
-      let csvContent = "data:text/csv;charset=utf-8,DNI,NOMBRES,SEMANA,MES,DIA,FECHA,ALERTA,ESTADO,HISTORICO,MODALIDAD,PLACA,RUTA,SEXO\n";
-      dbData.forEach(r => {
-        csvContent += `${r.dni},"${r.nombres}",${r.semana},${r.mes},${r.dia},${r.fecha},${r.alerta},${r.estado},${r.historico},${r.modalidad},${r.placa},${r.ruta},${r.sexo}\n`;
-      });
-      const encodedUri = encodeURI(csvContent);
-      const link = document.createElement("a");
-      link.setAttribute("href", encodedUri);
-      link.setAttribute("download", "Asistencia_Agricola_Huarmey.csv");
-      document.body.appendChild(link);
-      link.click();
+      }).join("");
     }
   </script>
 </body>

@@ -1,43 +1,45 @@
-/**
- * AGRÍCOLA HUARMEY - SERVICE WORKER
- * Caché de recursos estáticos y funcionamiento offline.
- */
-
-const CACHE_NAME = 'huarmey-asistencia-v2';
+const CACHE_NAME = 'huarmey-pwa-v1';
 const ASSETS_TO_CACHE = [
   './',
   './index.html',
   './manifest.json',
-  './logo.png',
-  'https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js',
-  'https://cdn.jsdelivr.net/npm/lucide@0.294.0/dist/umd/lucide.min.js'
+  './ICONO HUARMEY.png',
+  'https://cdn.tailwindcss.com',
+  'https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css',
+  'https://cdn.jsdelivr.net/npm/chart.js'
 ];
 
+// Instalar Service Worker y almacenar recursos en caché
 self.addEventListener('install', (event) => {
   event.waitUntil(
     caches.open(CACHE_NAME).then((cache) => {
-      console.log('[Service Worker] Cargando assets');
+      console.log('[ServiceWorker] Guardando en Caché de Campo');
       return cache.addAll(ASSETS_TO_CACHE);
-    }).then(() => self.skipWaiting())
+    })
   );
+  self.skipWaiting();
 });
 
+// Activar SW y limpiar cachés antiguas
 self.addEventListener('activate', (event) => {
   event.waitUntil(
-    caches.keys().then((keyList) => {
+    caches.keys().then((cacheNames) => {
       return Promise.all(
-        keyList.map((key) => {
-          if (key !== CACHE_NAME) {
-            console.log('[Service Worker] Limpiando caché obsoleta:', key);
-            return caches.delete(key);
+        cacheNames.map((cache) => {
+          if (cache !== CACHE_NAME) {
+            console.log('[ServiceWorker] Limpiando Caché Antigua');
+            return caches.delete(cache);
           }
         })
       );
-    }).then(() => self.clients.claim())
+    })
   );
+  self.clients.claim();
 });
 
+// Estrategia: Cache First con fallback a Network
 self.addEventListener('fetch', (event) => {
+  // Omitir peticiones de la API para manejo personalizado en IndexedDB
   if (event.request.url.includes('script.google.com')) {
     return;
   }
@@ -47,20 +49,22 @@ self.addEventListener('fetch', (event) => {
       if (cachedResponse) {
         return cachedResponse;
       }
-      return fetch(event.request).then((networkResponse) => {
-        if (!networkResponse || networkResponse.status !== 200 || networkResponse.type !== 'basic') {
-          return networkResponse;
+      return fetch(event.request).then((response) => {
+        // No guardar respuestas inválidas
+        if (!response || response.status !== 200 || response.type !== 'basic') {
+          return response;
         }
-        const responseToCache = networkResponse.clone();
+        const responseToCache = response.clone();
         caches.open(CACHE_NAME).then((cache) => {
           cache.put(event.request, responseToCache);
         });
-        return networkResponse;
-      }).catch(() => {
-        if (event.request.headers.get('accept').includes('text/html')) {
-          return caches.match('./index.html');
-        }
+        return response;
       });
+    }).catch(() => {
+      // Retorno en caso de fallo crítico de red
+      if (event.request.mode === 'navigate') {
+        return caches.match('./index.html');
+      }
     })
   );
 });

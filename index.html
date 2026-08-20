@@ -32,8 +32,8 @@
         <!-- Logo de la Empresa -->
         <img src="ICONO HUARMEY.png" alt="Agrícola Huarmey Logo" class="h-10 w-auto object-contain">
         <div>
-          <h1 class="text-xl font-bold text-gray-900 leading-none">Agrícola Huarmey</h1>
-          <span class="text-xs text-emerald-700 font-semibold">Gestión de Asistencia</span>
+          <h1 class="text-xl font-bold text-gray-900 leading-none">Agrícola Huarmey | fundo Frusan</h1>
+          <span class="text-xs text-emerald-700 font-semibold">Control de asistencia de cosecha</span>
         </div>
       </div>
       
@@ -334,7 +334,7 @@
       } else if (status === "online") {
         box.className = "flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold bg-emerald-50 text-emerald-700 border border-emerald-200";
         dot.className = "w-2 h-2 rounded-full bg-emerald-500";
-        txt.innerText = message || "Conectado a Google Sheets";
+        txt.innerText = message || "Conectado a la BD_ASISTENCIA";
       } else if (status === "offline") {
         box.className = "flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold bg-red-50 text-red-700 border border-red-200";
         dot.className = "w-2 h-2 rounded-full bg-red-500";
@@ -363,7 +363,7 @@
           dbData = json.data;
           await guardarLocal(dbData);
           procesarYRenderizar(dbData);
-          setConnectionStatus("online", "Conectado a Google Sheets");
+          setConnectionStatus("online", "Conectado a BD_ASISTENCIA");
         } else {
           throw new Error(json.message || "Error en datos devueltos");
         }
@@ -578,7 +578,7 @@
         <tr>
           <th class="p-2 border bg-gray-100"></th>
           <th class="p-2 border bg-gray-100"></th>
-          ${fechas.map(f => `<th class="p-1 border bg-emerald-50 text-center font-bold text-emerald-800 text-[10px]">Tot: ${formatNumber(asistioPorFecha[f])}</th>`).join("")}
+          ${fechas.map(f => `<th class="p-1 border bg-emerald-50 text-center font-bold text-emerald-800 text-[10px]">Total: ${formatNumber(asistioPorFecha[f])}</th>`).join("")}
           <th class="p-2 border bg-gray-100"></th>
           <th class="p-2 border bg-gray-100"></th>
           <th class="p-2 border bg-gray-100"></th>

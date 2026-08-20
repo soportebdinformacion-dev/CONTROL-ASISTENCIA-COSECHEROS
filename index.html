@@ -36,7 +36,7 @@
         </svg>
         <div>
           <h1 class="text-xl font-bold text-gray-900 leading-none">Agrícola Huarmey</h1>
-          <span class="text-xs text-emerald-700 font-semibold">Gestión de Asistencia</span>
+          <span class="text-xs text-emerald-700 font-semibold">Gestión de Asistencia de los cosechadores</span>
         </div>
       </div>
       
@@ -48,7 +48,7 @@
         </div>
 
         <button id="btnSync" onclick="sincronizarDatos(true)" class="flex items-center gap-1 bg-emerald-600 hover:bg-emerald-700 text-white text-xs px-3 py-2 rounded-lg font-medium shadow-sm transition">
-          <i data-lucide="refresh-cw" class="w-4 h-4" id="syncIcon"></i> Sincronizar
+          <i data-lucide="refresh-cw" class="w-4 h-4" id="syncIcon"></i> Conectar a la base datos...
         </button>
       </div>
     </div>
@@ -242,6 +242,11 @@
     let pagDetalle = 1;
     let sortDetalleAsc = true;
 
+    // Helper para formatear números con separador de miles
+    function formatNumber(num) {
+      return (num || 0).toLocaleString('es-PE');
+    }
+
     document.addEventListener("DOMContentLoaded", async () => {
       lucide.createIcons();
       await initDB();
@@ -402,11 +407,12 @@
         }
       });
 
-      document.getElementById("kpi-asistencias").innerText = asistencias;
-      document.getElementById("kpi-faltas").innerText = faltas;
-      document.getElementById("kpi-falta-marcacion").innerText = faltaMarc;
-      document.getElementById("kpi-falta-tareo").innerText = faltaTareo;
-      document.getElementById("kpi-falta-ambos").innerText = faltaAmbos;
+      // Aplica formato de separador de miles
+      document.getElementById("kpi-asistencias").innerText = formatNumber(asistencias);
+      document.getElementById("kpi-faltas").innerText = formatNumber(faltas);
+      document.getElementById("kpi-falta-marcacion").innerText = formatNumber(faltaMarc);
+      document.getElementById("kpi-falta-tareo").innerText = formatNumber(faltaTareo);
+      document.getElementById("kpi-falta-ambos").innerText = formatNumber(faltaAmbos);
     }
 
     function renderCharts(data) {
@@ -444,7 +450,7 @@
               font: { weight: 'bold', size: 10 },
               anchor: type === 'bar' ? 'end' : 'center',
               align: type === 'bar' ? 'top' : 'center',
-              formatter: (value) => value > 0 ? value : ''
+              formatter: (value) => value > 0 ? formatNumber(value) : ''
             }
           }
         }
@@ -499,7 +505,6 @@
       procesarYRenderizar(dbData);
     }
 
-    // --- FUNCIÓN HELPER PARA CALCULAR FALTAS Y ALERTAS DE UN EMPLEADO ---
     function obtenerAlertaEmpleado(dataEmpleado) {
       let totalFaltas = 0;
       let faltasLunSab = 0;
@@ -509,7 +514,6 @@
         if (estado === "FALTO") {
           totalFaltas++;
           const info = formatFechaShortConDia(d.FECHA_INDICE);
-          // Si cae de lunes (1) a sábado (6)
           if (info.numDia >= 1 && info.numDia <= 6) {
             faltasLunSab++;
           }
@@ -524,7 +528,6 @@
       return '<span class="text-gray-400">-</span>';
     }
 
-    // --- LÓGICA DE LA MATRIZ DE ASISTENCIA ---
     function toggleSortMatriz() {
       sortMatrizAsc = !sortMatrizAsc;
       document.getElementById("matrizSortLabel").innerText = sortMatrizAsc ? "A-Z" : "Z-A";
@@ -539,7 +542,6 @@
     function renderMatriz(data) {
       const fechas = [...new Set(data.map(i => i.FECHA_INDICE))].filter(Boolean).sort();
       
-      // Totales de ASISTIO por cada fecha
       const asistioPorFecha = {};
       fechas.forEach(f => {
         const countAsistio = data.filter(d => {
@@ -550,7 +552,6 @@
         asistioPorFecha[f] = countAsistio;
       });
 
-      // Obtener Empleados Únicos
       let empleadosMap = {};
       data.forEach(i => {
         if (!empleadosMap[i.DNI]) {
@@ -559,12 +560,10 @@
       });
       let empleados = Object.values(empleadosMap);
 
-      // Ordenar Alfabéticamente
       empleados.sort((a, b) => {
         return sortMatrizAsc ? a.nombre.localeCompare(b.nombre) : b.nombre.localeCompare(a.nombre);
       });
 
-      // Paginación
       const totalPaginas = Math.ceil(empleados.length / PAGE_SIZE) || 1;
       if (pagMatriz < 1) pagMatriz = 1;
       if (pagMatriz > totalPaginas) pagMatriz = totalPaginas;
@@ -572,17 +571,16 @@
       const inicio = (pagMatriz - 1) * PAGE_SIZE;
       const empleadosPagina = empleados.slice(inicio, inicio + PAGE_SIZE);
 
-      document.getElementById("matrizPagInfo").innerText = `Página ${pagMatriz} de ${totalPaginas} (${empleados.length} Registros Total)`;
+      document.getElementById("matrizPagInfo").innerText = `Página ${pagMatriz} de ${totalPaginas} (${formatNumber(empleados.length)} Registros Total)`;
       document.getElementById("btnMatrizPrev").disabled = pagMatriz === 1;
       document.getElementById("btnMatrizNext").disabled = pagMatriz === totalPaginas;
 
-      // Header de la Matriz con Total Asistió por columna de Fecha
       const headerRow = document.getElementById("matrizHeader");
       headerRow.innerHTML = `
         <tr>
           <th class="p-2 border bg-gray-100"></th>
           <th class="p-2 border bg-gray-100"></th>
-          ${fechas.map(f => `<th class="p-1 border bg-emerald-50 text-center font-bold text-emerald-800 text-[10px]">Tot: ${asistioPorFecha[f] || 0}</th>`).join("")}
+          ${fechas.map(f => `<th class="p-1 border bg-emerald-50 text-center font-bold text-emerald-800 text-[10px]">Tot: ${formatNumber(asistioPorFecha[f])}</th>`).join("")}
           <th class="p-2 border bg-gray-100"></th>
           <th class="p-2 border bg-gray-100"></th>
           <th class="p-2 border bg-gray-100"></th>
@@ -603,7 +601,6 @@
         </tr>
       `;
 
-      // Filas de Datos de la Matriz
       const body = document.getElementById("matrizBody");
       body.innerHTML = empleadosPagina.map(emp => {
         let totAsistio = 0;
@@ -639,15 +636,14 @@
             <td class="p-2 border font-mono font-medium">${emp.dni}</td>
             <td class="p-2 border font-medium">${emp.nombre}</td>
             ${celdasFechas}
-            <td class="p-2 border text-center font-bold text-emerald-700 bg-emerald-50/50">${totAsistio}</td>
-            <td class="p-2 border text-center font-bold text-red-700 bg-red-50/50">${totFalto}</td>
+            <td class="p-2 border text-center font-bold text-emerald-700 bg-emerald-50/50">${formatNumber(totAsistio)}</td>
+            <td class="p-2 border text-center font-bold text-red-700 bg-red-50/50">${formatNumber(totFalto)}</td>
             <td class="p-2 border text-center">${alertaBadge}</td>
           </tr>
         `;
       }).join("");
     }
 
-    // --- LÓGICA DE DETALLE COMPLETO DE REGISTROS ---
     function toggleSortDetalle() {
       sortDetalleAsc = !sortDetalleAsc;
       document.getElementById("detalleSortLabel").innerText = sortDetalleAsc ? "A-Z" : "Z-A";
@@ -675,7 +671,7 @@
       const inicio = (pagDetalle - 1) * PAGE_SIZE;
       const dataPagina = dataOrdenada.slice(inicio, inicio + PAGE_SIZE);
 
-      document.getElementById("detallePagInfo").innerText = `Página ${pagDetalle} de ${totalPaginas} (${dataOrdenada.length} Registros Total)`;
+      document.getElementById("detallePagInfo").innerText = `Página ${pagDetalle} de ${totalPaginas} (${formatNumber(dataOrdenada.length)} Registros Total)`;
       document.getElementById("btnDetallePrev").disabled = pagDetalle === 1;
       document.getElementById("btnDetalleNext").disabled = pagDetalle === totalPaginas;
 
@@ -709,7 +705,6 @@
       }).join("");
     }
 
-    // Exportar a Excel
     function exportarExcel() {
       if (!filteredData || filteredData.length === 0) {
         alert("No hay registros para exportar.");

@@ -1,9 +1,10 @@
-const CACHE_NAME = 'huarmey-asistencia-v1';
+const CACHE_NAME = 'agricola-huarmey-v1';
 const ASSETS = [
   './',
-  'https://cdn.tailwindcss.com',
-  'https://unpkg.com/vue@3/dist/vue.global.js',
-  'https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css'
+  './index.html',
+  './manifest.json',
+  'https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css',
+  'https://cdn.jsdelivr.net/npm/chart.js'
 ];
 
 self.addEventListener('install', (e) => {
@@ -12,7 +13,6 @@ self.addEventListener('install', (e) => {
       return cache.addAll(ASSETS);
     })
   );
-  self.skipWaiting();
 });
 
 self.addEventListener('activate', (e) => {
@@ -20,21 +20,32 @@ self.addEventListener('activate', (e) => {
     caches.keys().then((keys) => {
       return Promise.all(
         keys.map((key) => {
-          if (key !== CACHE_NAME) return caches.delete(key);
+          if (key !== CACHE_NAME) {
+            return caches.delete(key);
+          }
         })
       );
     })
   );
-  self.clients.claim();
 });
 
 self.addEventListener('fetch', (e) => {
   e.respondWith(
     caches.match(e.request).then((cachedResponse) => {
-      if (cachedResponse) return cachedResponse;
-      return fetch(e.request).catch(() => {
-        // Soporte offline básico
+      if (cachedResponse) {
+        return cachedResponse;
+      }
+      return fetch(e.request).then((networkResponse) => {
+        if (e.request.url.startsWith('http') && e.request.method === 'GET') {
+          return caches.open(CACHE_NAME).then((cache) => {
+            cache.put(e.request, networkResponse.clone());
+            return networkResponse;
+          });
+        }
+        return networkResponse;
       });
+    }).catch(() => {
+      return caches.match('./index.html');
     })
   );
 });

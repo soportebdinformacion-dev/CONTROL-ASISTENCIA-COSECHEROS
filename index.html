@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+<!DOCTYPE html><!DOCTYPE html>
 <html lang="es">
 <head>
   <meta charset="UTF-8">
@@ -19,8 +19,8 @@
     .badge-falto { background-color: #fee2e2; color: #b91c1c; }
     .badge-feriado { background-color: #fef3c7; color: #b45309; }
     .badge-inactivo { background-color: #f3f4f6; color: #4b5563; }
-    .alert-amarillo { background-color: #fef9c3; color: #854d0e; }
-    .alert-rojo { background-color: #fee2e2; color: #991b1b; }
+    .alert-naranja { background-color: #ffedd5; color: #c2410c; border: 1px solid #fed7aa; }
+    .alert-rojo { background-color: #fee2e2; color: #991b1b; border: 1px solid #fca5a5; }
   </style>
 </head>
 <body class="bg-gray-50 text-gray-800 font-sans pb-10">
@@ -136,10 +136,10 @@
           <option value="FALTA TAREO Y FALTA MARCACION">FALTA TAREO Y MARCACION</option>
         </select>
 
-        <select id="filterFaltasUmbral" onchange="aplicarFiltros()" class="p-2 border rounded-lg text-sm w-full bg-red-50 text-red-900 border-red-200 font-medium">
+        <select id="filterFaltasUmbral" onchange="aplicarFiltros()" class="p-2 border rounded-lg text-sm w-full bg-orange-50 text-orange-900 border-orange-200 font-medium">
           <option value="">Todas las Faltas (Sin Filtro)</option>
-          <option value="3">Mayor o igual a 3 Faltas (>= 3)</option>
-          <option value="6">Mayor o igual a 6 Faltas (Dar de baja)</option>
+          <option value="3">Más de 3 Faltas (> 3 FALTAS)</option>
+          <option value="6">Más de 6 Faltas (DAR DE BAJA)</option>
         </select>
       </div>
 
@@ -512,6 +512,7 @@
       const estAsist = document.getElementById("filterEstadoAsistencia").value;
       const faltasUmbral = document.getElementById("filterFaltasUmbral").value;
 
+      // Conteo de faltas exclusivas (FALTO) por DNI
       const faltasMap = {};
       dbData.forEach(d => {
         const est = (d.ESTADO_MATRIZ || d.ALERTA || "").toString().trim().toUpperCase();
@@ -533,9 +534,9 @@
         let matchUmbral = true;
         const totalFaltasEmp = faltasMap[item.DNI] || 0;
         if (faltasUmbral === "3") {
-          matchUmbral = totalFaltasEmp >= 3;
+          matchUmbral = totalFaltasEmp > 3;
         } else if (faltasUmbral === "6") {
-          matchUmbral = totalFaltasEmp >= 6;
+          matchUmbral = totalFaltasEmp > 6;
         }
 
         return matchBusqueda && matchSemana && matchMes && matchFecha && matchAlerta && matchEstado && matchUmbral;
@@ -564,7 +565,7 @@
       procesarYRenderizar(dbData);
     }
 
-    // CONTEO Y REGLAS DE ALERTA ACTUALIZADAS (>= 3 FALTAS Y >= 6 DAR DE BAJA)
+    // CONTEO EXCLUSIVO DE "FALTO" Y NUEVAS CONDICIONES (>3 NARANJA, >6 ROJO)
     function obtenerAlertaEmpleado(dataEmpleado) {
       let totalFaltas = 0;
 
@@ -575,10 +576,10 @@
         }
       });
 
-      if (totalFaltas >= 6) {
+      if (totalFaltas > 6) {
         return '<span class="px-2 py-0.5 rounded-full text-[10px] font-bold alert-rojo uppercase">DAR DE BAJA</span>';
-      } else if (totalFaltas >= 3) {
-        return `<span class="px-2 py-0.5 rounded-full text-[10px] font-bold alert-amarillo uppercase">${totalFaltas} FALTAS</span>`;
+      } else if (totalFaltas > 3) {
+        return '<span class="px-2 py-0.5 rounded-full text-[10px] font-bold alert-naranja uppercase">> = 3 FALTAS</span>';
       }
       
       return '';

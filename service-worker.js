@@ -1,9 +1,9 @@
 /**
  * AGRÍCOLA HUARMEY - SERVICE WORKER
- * Gestiona el caché de recursos estáticos y asegura funcionamiento offline total.
+ * Caché de recursos estáticos y funcionamiento offline.
  */
 
-const CACHE_NAME = 'huarmey-asistencia-v1';
+const CACHE_NAME = 'huarmey-asistencia-v2';
 const ASSETS_TO_CACHE = [
   './',
   './index.html',
@@ -13,24 +13,22 @@ const ASSETS_TO_CACHE = [
   'https://cdn.jsdelivr.net/npm/lucide@0.294.0/dist/umd/lucide.min.js'
 ];
 
-// Instalación: Precargar assets clave
 self.addEventListener('install', (event) => {
   event.waitUntil(
     caches.open(CACHE_NAME).then((cache) => {
-      console.log('[Service Worker] Precaching app shell');
+      console.log('[Service Worker] Cargando assets');
       return cache.addAll(ASSETS_TO_CACHE);
     }).then(() => self.skipWaiting())
   );
 });
 
-// Activación: Limpieza de cachés antiguas
 self.addEventListener('activate', (event) => {
   event.waitUntil(
     caches.keys().then((keyList) => {
       return Promise.all(
         keyList.map((key) => {
           if (key !== CACHE_NAME) {
-            console.log('[Service Worker] Borrando caché previa:', key);
+            console.log('[Service Worker] Limpiando caché obsoleta:', key);
             return caches.delete(key);
           }
         })
@@ -39,9 +37,7 @@ self.addEventListener('activate', (event) => {
   );
 });
 
-// Intercepción de solicitudes: Cache First, fallback a Network
 self.addEventListener('fetch', (event) => {
-  // Solicitudes a la API de Google Apps Script se manejan online/IndexedDB en JS
   if (event.request.url.includes('script.google.com')) {
     return;
   }
@@ -61,7 +57,6 @@ self.addEventListener('fetch', (event) => {
         });
         return networkResponse;
       }).catch(() => {
-        // Fallback offline si no hay red ni caché
         if (event.request.headers.get('accept').includes('text/html')) {
           return caches.match('./index.html');
         }

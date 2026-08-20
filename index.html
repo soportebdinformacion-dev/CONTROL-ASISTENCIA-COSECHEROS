@@ -1,4 +1,4 @@
-<!DOCTYPE html><!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="es">
 <head>
   <meta charset="UTF-8">
@@ -195,8 +195,9 @@
     <!-- BOTONES PRINCIPALES -->
     <div class="action-bar">
       <button class="btn btn-primary" onclick="openModal()"><i class="fas fa-plus-circle"></i> Registrar Asistencia</button>
-      <button class="btn btn-outline" onclick="syncData()"><i class="fas fa-sync-alt"></i> Sincronizar Google Sheets</button>
-      <button class="btn btn-outline" onclick="exportExcel()"><i class="fas fa-file-excel"></i> Exportar Datos</button>
+      <button class="btn btn-outline" onclick="loadFromSheets()"><i class="fas fa-download"></i> Cargar de Sheets</button>
+      <button class="btn btn-outline" onclick="syncData()"><i class="fas fa-sync-alt"></i> Enviar a Google Sheets</button>
+      <button class="btn btn-outline" onclick="exportExcel()"><i class="fas fa-file-excel"></i> Exportar CSV</button>
     </div>
 
     <!-- TARJETAS METRICAS KPI -->
@@ -306,16 +307,12 @@
     <div class="table-section">
       <div class="table-header">
         <h3><i class="fas fa-calendar-alt"></i> Control Individual de Asistencia por Fecha Índice</h3>
-        <span style="font-size: 0.8rem; color: var(--text-muted);">Muestra estados: ASISTIO, FALTO, FERIADO, INACTIVO</span>
+        <span style="font-size: 0.8rem; color: var(--text-muted);">Estados: ASISTIO, FALTO, FERIADO, INACTIVO</span>
       </div>
       <div class="table-responsive">
         <table id="matrixTable">
-          <thead>
-            <!-- Dinámico desde JS -->
-          </thead>
-          <tbody>
-            <!-- Dinámico desde JS -->
-          </tbody>
+          <thead></thead>
+          <tbody></tbody>
         </table>
       </div>
     </div>
@@ -345,9 +342,7 @@
               <th>Acción</th>
             </tr>
           </thead>
-          <tbody>
-            <!-- Dinámico -->
-          </tbody>
+          <tbody></tbody>
         </table>
       </div>
     </div>
@@ -372,7 +367,7 @@
         </div>
         <div class="form-group" style="margin-bottom:10px;">
           <label>Fecha Índice</label>
-          <input type="date" id="mFecha" class="form-control" required onchange="calcSemanaMes()">
+          <input type="date" id="mFecha" class="form-control" required>
         </div>
         <div class="form-group" style="margin-bottom:10px;">
           <label>Alerta</label>
@@ -416,10 +411,11 @@
   </div>
 
   <script>
-    // CONFIGURACIÓN DE APPS SCRIPT WEB APP URL
-    const GAS_WEB_APP_URL = "https://script.google.com/macros/s/AKfycbwDQ1tXDD4PtHwlaz1o7jLopCKuiI9W0Xo1Jdfb2YxNvUuwXxh2f_tkQQfgLviqLFtu/exec";
+    // URL DE TU APLICACIÓN WEB DE GOOGLE APPS SCRIPT
+    // Reemplaza esta URL por la entregada al implementar tu Apps Script
+    const GAS_WEB_APP_URL = "https://script.google.com/macros/s/AKfycbwEYBLxQItdwIK2G-WBOgSA3Cbpxbh0eUz99kOKdaW_VtmKft91mCzsOl6vZNE6PLLt/exec";
 
-    // DATOS DE PRUEBA / INICIALES
+    // DATOS DE TRABAJO
     let dbData = [
       { dni: "45892134", nombres: "PEREZ GOMEZ JUAN", semana: "S34", mes: "AGOSTO", dia: "LUNES", fecha: "2026-08-17", alerta: "ASISTIO", estado: "OK", historico: "REINGRESANTE", modalidad: "CONTRATADO", placa: "ABC-123", ruta: "HUARMEY RUTA 1", sexo: "M" },
       { dni: "45892134", nombres: "PEREZ GOMEZ JUAN", semana: "S34", mes: "AGOSTO", dia: "MARTES", fecha: "2026-08-18", alerta: "FALTO", estado: "FALTA MARCACION", historico: "REINGRESANTE", modalidad: "CONTRATADO", placa: "ABC-123", ruta: "HUARMEY RUTA 1", sexo: "M" },
@@ -433,7 +429,7 @@
     let chartSexoObj = null, chartHistObj = null, chartModObj = null;
     let selectedFaltaFilter = 0;
 
-    // INDEXED DB PARA PERSISTENCIA OFFLINE
+    // INDEXED DB PARA MODO OFFLINE
     let indexedDB = window.indexedDB || window.mozIndexedDB || window.webkitIndexedDB;
     let db;
 
@@ -457,17 +453,20 @@
       populateDropdowns();
       renderAll();
       registerSW();
+      if (navigator.onLine && GAS_WEB_APP_URL.includes("script.google.com")) {
+        loadFromSheets();
+      }
     });
 
     function registerSW() {
       if ('serviceWorker' in navigator) {
         navigator.serviceWorker.register('service-worker.js')
-          .then(() => console.log('Service Worker Registrado'))
+          .then(() => console.log('SW registrado'))
           .catch(err => console.error('Error SW', err));
       }
     }
 
-    // CONEXION ONLINE/OFFLINE
+    // MONITOREO DE CONEXION
     window.addEventListener('online', updateStatus);
     window.addEventListener('offline', updateStatus);
 
@@ -478,11 +477,11 @@
         el.innerHTML = '<i class="fas fa-wifi"></i> <span>Online</span>';
       } else {
         el.className = "status-badge offline";
-        el.innerHTML = '<i class="fas fa-signal-slash"></i> <span>Offline (Local)</span>';
+        el.innerHTML = '<i class="fas fa-signal-slash"></i> <span>Offline</span>';
       }
     }
 
-    // RENDERIZADO GENERAL
+    // RENDERIZADO
     function renderAll() {
       updateKPIs();
       updateCharts();
@@ -528,20 +527,17 @@
     }
 
     function updateCharts() {
-      // Sexo
       let mCount = filteredData.filter(d => d.sexo === 'M').length;
       let fCount = filteredData.filter(d => d.sexo === 'F').length;
       chartSexoObj.data.datasets[0].data = [mCount, fCount];
       chartSexoObj.update();
 
-      // Historico
       let histMap = {};
       filteredData.forEach(d => { histMap[d.historico || 'N/A'] = (histMap[d.historico || 'N/A'] || 0) + 1; });
       chartHistObj.data.labels = Object.keys(histMap);
       chartHistObj.data.datasets[0].data = Object.values(histMap);
       chartHistObj.update();
 
-      // Modalidad
       let modMap = {};
       filteredData.forEach(d => { modMap[d.modalidad || 'N/A'] = (modMap[d.modalidad || 'N/A'] || 0) + 1; });
       chartModObj.data.labels = Object.keys(modMap);
@@ -568,7 +564,7 @@
       const estado = document.getElementById('filterEstado').value;
 
       filteredData = dbData.filter(item => {
-        const matchSearch = item.dni.toLowerCase().includes(search) || item.nombres.toLowerCase().includes(search);
+        const matchSearch = String(item.dni).toLowerCase().includes(search) || String(item.nombres).toLowerCase().includes(search);
         const matchSemana = !semana || item.semana === semana;
         const matchMes = !mes || item.mes === mes;
         const matchAlerta = !alerta || item.alerta === alerta;
@@ -585,7 +581,6 @@
 
     function filterByFaltas(limit) {
       selectedFaltaFilter = limit;
-      // Contar faltas por DNI
       let faltaCounts = {};
       dbData.forEach(d => {
         if (d.alerta === 'FALTO') {
@@ -606,7 +601,6 @@
       applyFilters();
     }
 
-    // TABLA PIVOT FECHA INDICE EN COLUMNAS
     function renderMatrixTable() {
       const uniqueFechas = [...new Set(filteredData.map(d => d.fecha))].sort();
       const uniquePersons = {};
@@ -618,15 +612,11 @@
         uniquePersons[d.dni].asistencia[d.fecha] = d.alerta;
       });
 
-      // Headers
       let theadHtml = `<tr><th>DNI</th><th>Apellidos y Nombres</th>`;
-      uniqueFechas.forEach(f => {
-        theadHtml += `<th>${f}</th>`;
-      });
+      uniqueFechas.forEach(f => { theadHtml += `<th>${f}</th>`; });
       theadHtml += `</tr>`;
       document.querySelector('#matrixTable thead').innerHTML = theadHtml;
 
-      // Body
       let tbodyHtml = '';
       Object.keys(uniquePersons).forEach(dni => {
         let p = uniquePersons[dni];
@@ -645,9 +635,7 @@
       document.querySelector('#matrixTable tbody').innerHTML = tbodyHtml;
     }
 
-    // TABLA DETALLE GENERAL
     function renderMainTable() {
-      // Contar faltas para alertas de color en la fila
       let faltasMap = {};
       dbData.forEach(d => {
         if (d.alerta === 'FALTO') faltasMap[d.dni] = (faltasMap[d.dni] || 0) + 1;
@@ -656,7 +644,7 @@
       let tbody = document.querySelector('#mainTable tbody');
       tbody.innerHTML = '';
 
-      filteredData.forEach((d, idx) => {
+      filteredData.forEach((d) => {
         let tr = document.createElement('tr');
         let fCount = faltasMap[d.dni] || 0;
 
@@ -689,25 +677,27 @@
     }
 
     function removeWorkerSemana(dni) {
-      if (confirm(`¿Desea retirar al colaborador con DNI ${dni} de la semana por acumular 6 faltas consecutivas?`)) {
+      if (confirm(`¿Desea retirar al colaborador con DNI ${dni} por acumular 6 faltas consecutivas?`)) {
         dbData = dbData.filter(d => d.dni !== dni);
         applyFilters();
       }
     }
 
-    // MANEJO DE MODAL
     function openModal() { document.getElementById('recordModal').classList.add('active'); }
     function closeModal() { document.getElementById('recordModal').classList.remove('active'); }
 
     function saveRecord(e) {
       e.preventDefault();
+      const rawDate = document.getElementById('mFecha').value;
+      const dateObj = new Date(rawDate + "T00:00:00");
+
       const rec = {
         dni: document.getElementById('mDni').value,
-        nombres: document.getElementById('mNombres').value,
-        semana: "S" + getWeekNumber(new Date(document.getElementById('mFecha').value)),
-        mes: new Date(document.getElementById('mFecha').value).toLocaleString('es-ES', { month: 'long' }).toUpperCase(),
-        dia: new Date(document.getElementById('mFecha').value).toLocaleString('es-ES', { weekday: 'long' }).toUpperCase(),
-        fecha: document.getElementById('mFecha').value,
+        nombres: document.getElementById('mNombres').value.toUpperCase(),
+        semana: "S" + getWeekNumber(dateObj),
+        mes: dateObj.toLocaleString('es-ES', { month: 'long' }).toUpperCase(),
+        dia: dateObj.toLocaleString('es-ES', { weekday: 'long' }).toUpperCase(),
+        fecha: rawDate,
         alerta: document.getElementById('mAlerta').value,
         estado: document.getElementById('mEstado').value,
         historico: "REGISTRADO",
@@ -728,55 +718,101 @@
       d = new Date(Date.UTC(d.getFullYear(), d.getMonth(), d.getDate()));
       d.setUTCDate(d.getUTCDate() + 4 - (d.getUTCDay() || 7));
       var yearStart = new Date(Date.UTC(d.getUTCFullYear(), 0, 1));
-      var weekNo = Math.ceil((((d - yearStart) / 86400000) + 1) / 7);
-      return weekNo;
+      return Math.ceil((((d - yearStart) / 86400000) + 1) / 7);
     }
 
-    // PERSISTENCIA OFFLINE LOCAL
     function saveLocalData(rec) {
       if (!db) return;
       let tx = db.transaction("asistencia", "readwrite");
-      let store = tx.objectStore("asistencia");
-      store.add(rec);
+      tx.objectStore("asistencia").add(rec);
     }
 
     function loadLocalData() {
       if (!db) return;
       let tx = db.transaction("asistencia", "readonly");
-      let store = tx.objectStore("asistencia");
-      let request = store.getAll();
-      request.onsuccess = function() {
-        if (request.result && request.result.length > 0) {
-          dbData = [...dbData, ...request.result];
+      let req = tx.objectStore("asistencia").getAll();
+      req.onsuccess = function() {
+        if (req.result && req.result.length > 0) {
+          dbData = [...dbData, ...req.result];
           populateDropdowns();
           applyFilters();
         }
       };
     }
 
-    // SINCRONIZACIÓN CON GOOGLE SHEETS
-    function syncData() {
+    // CARGAR DATOS DESDE GOOGLE SHEETS
+    function loadFromSheets() {
       if (!navigator.onLine) {
-        alert("Sin conexión a Internet. La sincronización se ejecutará cuando se restablezca la red.");
+        alert("Sin conexión a Internet.");
+        return;
+      }
+      if (!GAS_WEB_APP_URL || GAS_WEB_APP_URL.includes("REEMPLAZAR_POR_TU_ID_DE_DESPLIEGUE")) {
+        alert("Configura correctamente la constante GAS_WEB_APP_URL.");
         return;
       }
 
+      fetch(GAS_WEB_APP_URL)
+        .then(res => res.json())
+        .then(res => {
+          if (res.status === 'success' && res.data && res.data.length > 0) {
+            dbData = res.data.map(item => ({
+              dni: String(item["DNI"] || ""),
+              nombres: item["APELLIDOS Y NOMBRES"] || "",
+              semana: item["SEMANA"] || "",
+              mes: item["MES"] || "",
+              dia: item["DIA"] || "",
+              fecha: item["FECHA INDICE"] || "",
+              alerta: item["ALERTA"] || "",
+              estado: item["ESTADO ASISTENCIA"] || "",
+              historico: item["HISTORICO"] || "ACTIVO",
+              modalidad: item["MODALIDAD"] || "",
+              placa: item["PLACA"] || "-",
+              ruta: item["RUTA"] || "-",
+              sexo: item["SEXO"] || ""
+            }));
+            populateDropdowns();
+            applyFilters();
+            alert("¡Datos cargados correctamente desde Google Sheets!");
+          }
+        })
+        .catch(err => {
+          console.error("Error al obtener datos:", err);
+        });
+    }
+
+    // ENVÍO/SINCRONIZACIÓN CORREGIDA HACIA GOOGLE SHEETS (EVITA BLOQUEO CORS)
+    function syncData() {
+      if (!navigator.onLine) {
+        alert("Sin conexión a Internet. La sincronización requiere red.");
+        return;
+      }
+
+      if (!GAS_WEB_APP_URL || GAS_WEB_APP_URL.includes("REEMPLAZAR_POR_TU_ID_DE_DESPLIEGUE")) {
+        alert("Por favor, ingresa la URL de tu Web App desplegada en GAS_WEB_APP_URL.");
+        return;
+      }
+
+      const payload = {
+        action: 'syncData',
+        data: dbData
+      };
+
       fetch(GAS_WEB_APP_URL, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ action: 'syncData', data: dbData })
+        headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+        body: JSON.stringify(payload)
       })
-      .then(res => res.json())
+      .then(response => response.json())
       .then(res => {
         if (res.status === 'success') {
-          alert('¡Sincronización exitosa con Google Sheets!');
+          alert('¡Sincronización con Google Sheets completada con éxito!');
         } else {
-          alert('Error en la sincronización: ' + res.message);
+          alert('Error devuelto por Apps Script: ' + res.message);
         }
       })
       .catch(err => {
-        console.log('Modo demostración o error de red', err);
-        alert('Datos almacenados en caché local correctamente.');
+        console.error('Error al sincronizar:', err);
+        alert('Ocurrió un problema de conexión con Google Sheets. Revisa la URL y los permisos de implementación.');
       });
     }
 

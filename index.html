@@ -122,16 +122,30 @@
         <select id="filterSemana" onchange="aplicarFiltros()" class="p-2 border rounded-lg text-sm w-full"><option value="">Todas las Semanas</option></select>
         <select id="filterMes" onchange="aplicarFiltros()" class="p-2 border rounded-lg text-sm w-full"><option value="">Todos los Meses</option></select>
         <input type="date" id="filterFecha" onchange="aplicarFiltros()" class="p-2 border rounded-lg text-sm w-full">
-        <select id="filterAlerta" onchange="aplicarFiltros()" class="p-2 border rounded-lg text-sm w-full">
-          <option value="">Todas las Alertas</option>
-          <option value="FALTO">FALTO</option>
-          <option value="ASISTIO">ASISTIO</option>
-        </select>
+        
+        <!-- Filtro Selección Múltiple para Alertas -->
+        <div class="relative">
+          <button type="button" onclick="toggleDropdownAlertas()" class="p-2 border rounded-lg text-sm w-full bg-white text-left flex justify-between items-center focus:outline-none">
+            <span id="labelTextAlertas" class="truncate text-gray-700">Todas las Alertas</span>
+            <i data-lucide="chevron-down" class="w-4 h-4 text-gray-500"></i>
+          </button>
+          <div id="dropdownAlertas" class="hidden absolute z-50 left-0 right-0 mt-1 bg-white border rounded-lg shadow-lg p-2 space-y-1 text-xs">
+            <!-- Renderizado dinámico -->
+          </div>
+        </div>
+
         <select id="filterEstadoAsistencia" onchange="aplicarFiltros()" class="p-2 border rounded-lg text-sm w-full">
           <option value="">Todo Estado Asistencia</option>
           <option value="FALTA MARCACION">FALTA MARCACION</option>
           <option value="FALTA TAREO">FALTA TAREO</option>
           <option value="FALTA TAREO Y FALTA MARCACION">FALTA TAREO Y MARCACION</option>
+        </select>
+
+        <!-- Filtro por Umbral de Faltas -->
+        <select id="filterFaltasUmbral" onchange="aplicarFiltros()" class="p-2 border rounded-lg text-sm w-full bg-red-50 text-red-900 border-red-200 font-medium">
+          <option value="">Todas las Faltas (Sin Filtro)</option>
+          <option value="3">Mayor igual a 3 Faltas (>= 3)</option>
+          <option value="6">Mayor igual a 6 Faltas (Dar de baja)</option>
         </select>
       </div>
 
@@ -231,6 +245,7 @@
     let dbData = [];
     let filteredData = [];
     let charts = {};
+    let selectedAlertas = [];
 
     const PAGE_SIZE = 50;
     let pagMatriz = 1;
@@ -239,7 +254,6 @@
     let pagDetalle = 1;
     let sortDetalleAsc = true;
 
-    // Helper para formatear números con separador de miles
     function formatNumber(num) {
       return (num || 0).toLocaleString('es-PE');
     }
@@ -253,6 +267,14 @@
       if ('serviceWorker' in navigator) {
         navigator.serviceWorker.register('service-worker.js');
       }
+
+      // Cerrar dropdown si se hace clic fuera
+      document.addEventListener("click", (e) => {
+        const drop = document.getElementById("dropdownAlertas");
+        if (drop && !e.target.closest("#dropdownAlertas") && !e.target.closest("button[onclick='toggleDropdownAlertas()']")) {
+          drop.classList.add("hidden");
+        }
+      });
     });
 
     function formatFechaShortConDia(fechaStr) {
@@ -393,19 +415,18 @@
         if (item.ALERTA === "ASISTIO") asistencias++;
         if (item.ALERTA === "FALTO") faltas++;
         
-        // Se evalúa explícitamente el valor presente en la columna ESTADO_ASISTENCIA
+        // Conteo basado en la columna ESTADO ASISTENCIA
         const est = (item.ESTADO_ASISTENCIA || "").toString().trim().toUpperCase();
 
         if (est.includes("FALTA MARCACION") && est.includes("FALTA TAREO")) {
           faltaAmbos++;
-        } else if (est.includes("FALTA MARCACION")) {
+        } else if (est === "FALTA MARCACION") {
           faltaMarc++;
-        } else if (est.includes("FALTA TAREO")) {
+        } else if (est === "FALTA TAREO") {
           faltaTareo++;
         }
       });
 
-      // Render de los valores formateados con separador de miles
       document.getElementById("kpi-asistencias").innerText = formatNumber(asistencias);
       document.getElementById("kpi-faltas").innerText = formatNumber(faltas);
       document.getElementById("kpi-falta-marcacion").innerText = formatNumber(faltaMarc);
@@ -455,15 +476,50 @@
       });
     }
 
+    function toggleDropdownAlertas() {
+      const drop = document.getElementById("dropdownAlertas");
+      drop.classList.toggle("hidden");
+    }
+
     function poblarFiltros(data) {
       const semanas = [...new Set(data.map(i => i.SEMANA))].filter(Boolean).sort();
       const meses = [...new Set(data.map(i => i.MES))].filter(Boolean).sort();
+      const alertas = [...new Set(data.map(i => i.ALERTA))].filter(Boolean).sort();
       
       const selSemana = document.getElementById("filterSemana");
       const selMes = document.getElementById("filterMes");
+      const dropAlertas = document.getElementById("dropdownAlertas");
 
       selSemana.innerHTML = '<option value="">Todas las Semanas</option>' + semanas.map(s => `<option value="${s}">Semana ${s}</option>`).join("");
       selMes.innerHTML = '<option value="">Todos los Meses</option>' + meses.map(m => `<option value="${m}">${m}</option>`).join("");
+
+      dropAlertas.innerHTML = alertas.map(a => `
+        <label class="flex items-center space-x-2 cursor-pointer hover:bg-gray-50 p-1 rounded">
+          <input type="checkbox" value="${a}" class="chk-alerta rounded border-gray-300 text-emerald-600 focus:ring-emerald-500" onchange="actualizarSeleccionAlertas()">
+          <span class="text-gray-700 font-medium">${a}</span>
+        </label>
+      `).join("");
+    }
+
+    function actualizarSeleccionAlertas() {
+      const chks = document.querySelectorAll(".chk-alerta:checked");
+      selectedAlertas = Array.from(chks).map(c => c.value);
+      
+      const label = document.getElementById("labelTextAlertas");
+      if (selectedAlertas.length === 0) {
+        label.innerText = "Todas las Alertas";
+      } else {
+        label.innerText = `${selectedAlertas.length} seleccionada(s)`;
+      }
+
+      aplicarFiltros();
+    }
+
+    function contarFaltasTotales(dataEmp) {
+      return dataEmp.reduce((acc, curr) => {
+        const est = (curr.ESTADO_MATRIZ || curr.ALERTA || "").toString().trim().toUpperCase();
+        return est === "FALTO" ? acc + 1 : acc;
+      }, 0);
     }
 
     function aplicarFiltros() {
@@ -471,18 +527,36 @@
       const semana = document.getElementById("filterSemana").value;
       const mes = document.getElementById("filterMes").value;
       const fecha = document.getElementById("filterFecha").value;
-      const alerta = document.getElementById("filterAlerta").value;
       const estAsist = document.getElementById("filterEstadoAsistencia").value;
+      const faltasUmbral = document.getElementById("filterFaltasUmbral").value;
+
+      // Mapeo pre-calculado de faltas acumuladas por DNI sobre toda la BD
+      const faltasMap = {};
+      dbData.forEach(d => {
+        const est = (d.ESTADO_MATRIZ || d.ALERTA || "").toString().trim().toUpperCase();
+        if (est === "FALTO") {
+          faltasMap[d.DNI] = (faltasMap[d.DNI] || 0) + 1;
+        }
+      });
 
       filteredData = dbData.filter(item => {
         const matchBusqueda = (item.DNI || "").toString().toLowerCase().includes(busqueda) || (item.APELLIDOS_NOMBRES || "").toLowerCase().includes(busqueda);
         const matchSemana = !semana || item.SEMANA == semana;
         const matchMes = !mes || item.MES == mes;
         const matchFecha = !fecha || item.FECHA_INDICE == fecha;
-        const matchAlerta = !alerta || item.ALERTA == alerta;
+        const matchAlerta = selectedAlertas.length === 0 || selectedAlertas.includes(item.ALERTA);
         const matchEstado = !estAsist || (item.ESTADO_ASISTENCIA || "").includes(estAsist);
 
-        return matchBusqueda && matchSemana && matchMes && matchFecha && matchAlerta && matchEstado;
+        // Filtros de Umbral de Faltas (>=3 o >=6)
+        let matchUmbral = true;
+        const totalFaltasEmp = faltasMap[item.DNI] || 0;
+        if (faltasUmbral === "3") {
+          matchUmbral = totalFaltasEmp >= 3;
+        } else if (faltasUmbral === "6") {
+          matchUmbral = totalFaltasEmp >= 6;
+        }
+
+        return matchBusqueda && matchSemana && matchMes && matchFecha && matchAlerta && matchEstado && matchUmbral;
       });
 
       renderKpis(filteredData);
@@ -498,8 +572,13 @@
       document.getElementById("filterSemana").value = "";
       document.getElementById("filterMes").value = "";
       document.getElementById("filterFecha").value = "";
-      document.getElementById("filterAlerta").value = "";
       document.getElementById("filterEstadoAsistencia").value = "";
+      document.getElementById("filterFaltasUmbral").value = "";
+      
+      selectedAlertas = [];
+      document.querySelectorAll(".chk-alerta").forEach(c => c.checked = false);
+      document.getElementById("labelTextAlertas").innerText = "Todas las Alertas";
+
       procesarYRenderizar(dbData);
     }
 
@@ -518,10 +597,10 @@
         }
       });
 
-      if (faltasLunSab > 6) {
+      if (faltasLunSab >= 6 || totalFaltas >= 6) {
         return '<span class="px-2 py-0.5 rounded-full text-[10px] font-bold alert-rojo">DAR DE BAJA</span>';
-      } else if (totalFaltas > 3) {
-        return '<span class="px-2 py-0.5 rounded-full text-[10px] font-bold alert-amarillo">MAS DE 3 FALTAS</span>';
+      } else if (totalFaltas >= 3) {
+        return '<span class="px-2 py-0.5 rounded-full text-[10px] font-bold alert-amarillo">>= 3 FALTAS</span>';
       }
       return '<span class="text-gray-400">-</span>';
     }
@@ -603,7 +682,7 @@
       body.innerHTML = empleadosPagina.map(emp => {
         let totAsistio = 0;
         let totFalto = 0;
-        const dataEmp = data.filter(d => d.DNI === emp.dni);
+        const dataEmp = dbData.filter(d => d.DNI === emp.dni);
 
         const celdasFechas = fechas.map(f => {
           const reg = dataEmp.find(d => d.FECHA_INDICE === f);
@@ -675,7 +754,7 @@
 
       const tbody = document.getElementById("tablaDetalle");
       tbody.innerHTML = dataPagina.map(item => {
-        const dataEmp = data.filter(d => d.DNI === item.DNI);
+        const dataEmp = dbData.filter(d => d.DNI === item.DNI);
         const alertaFaltasBadge = obtenerAlertaEmpleado(dataEmp);
 
         return `

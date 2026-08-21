@@ -181,9 +181,14 @@
         <h3 class="text-sm font-bold text-gray-700 flex items-center gap-2">
           <i data-lucide="table" class="w-4 h-4 text-emerald-600"></i> Detalle Completo de Registros
         </h3>
-        <button onclick="toggleSortDetalle()" class="text-xs bg-gray-100 hover:bg-gray-200 text-gray-700 px-3 py-1.5 rounded-lg flex items-center gap-1 font-medium transition">
-          <i data-lucide="arrow-up-down" class="w-3.5 h-3.5"></i> Ordenar Nombres (<span id="detalleSortLabel">A-Z</span>)
-        </button>
+        <div class="flex items-center gap-2">
+          <button onclick="toggleSortDetalleFecha()" class="text-xs bg-emerald-50 hover:bg-emerald-100 text-emerald-700 border border-emerald-200 px-3 py-1.5 rounded-lg flex items-center gap-1 font-medium transition">
+            <i data-lucide="arrow-up-down" class="w-3.5 h-3.5"></i> Ordenar Fecha (<span id="detalleSortFechaLabel">Recientes primero</span>)
+          </button>
+          <button onclick="toggleSortDetalle()" class="text-xs bg-gray-100 hover:bg-gray-200 text-gray-700 px-3 py-1.5 rounded-lg flex items-center gap-1 font-medium transition">
+            <i data-lucide="arrow-up-down" class="w-3.5 h-3.5"></i> Ordenar Nombres (<span id="detalleSortLabel">A-Z</span>)
+          </button>
+        </div>
       </div>
 
       <div class="overflow-x-auto">
@@ -196,7 +201,12 @@
               <th class="p-2 border text-center">Sem.</th>
               <th class="p-2 border text-center">Mes</th>
               <th class="p-2 border text-center">Día</th>
-              <th class="p-2 border text-center">Fecha Índice</th>
+              <th class="p-2 border text-center cursor-pointer hover:bg-gray-200 transition" onclick="toggleSortDetalleFecha()" title="Clic para ordenar por Fecha Índice">
+                <div class="flex items-center justify-center gap-1">
+                  <span>Fecha Índice</span>
+                  <span id="iconSortFechaIndice" class="text-emerald-700 font-bold">⇅</span>
+                </div>
+              </th>
               <th class="p-2 border text-center">Alerta</th>
               <th class="p-2 border">Estado Asistencia</th>
               <th class="p-2 border">Histórico</th>
@@ -239,6 +249,8 @@
 
     let pagDetalle = 1;
     let sortDetalleAsc = true;
+    let sortDetalleByFecha = false;
+    let sortFechaAsc = false; // Por defecto: más recientes primero (Descendente)
 
     function formatNumber(num) {
       return (num || 0).toLocaleString('es-PE');
@@ -261,6 +273,28 @@
         }
       });
     });
+
+    function parseFechaToTimestamp(fechaStr) {
+      if (!fechaStr) return 0;
+      const clean = fechaStr.toString().split("T")[0];
+      const parts = clean.split("-");
+
+      if (parts.length === 3) {
+        // Formato ISO: YYYY-MM-DD
+        return new Date(parseInt(parts[0], 10), parseInt(parts[1], 10) - 1, parseInt(parts[2], 10)).getTime();
+      }
+
+      const partsSlash = clean.split("/");
+      if (partsSlash.length === 3) {
+        // Formato DD/MM/YY o DD/MM/YYYY
+        let year = parseInt(partsSlash[2], 10);
+        if (year < 100) year += 2000;
+        return new Date(year, parseInt(partsSlash[1], 10) - 1, parseInt(partsSlash[0], 10)).getTime();
+      }
+
+      const t = Date.parse(fechaStr);
+      return isNaN(t) ? 0 : t;
+    }
 
     function formatFechaShortConDia(fechaStr) {
       if (!fechaStr) return { dia: "", fecha: "" };
@@ -512,7 +546,6 @@
       const estAsist = document.getElementById("filterEstadoAsistencia").value;
       const faltasUmbral = document.getElementById("filterFaltasUmbral").value;
 
-      // Se obtienen los datos filtrados preliminarmente
       let tempFiltered = dbData.filter(item => {
         const matchBusqueda = (item.DNI || "").toString().toLowerCase().includes(busqueda) || (item.APELLIDOS_NOMBRES || "").toLowerCase().includes(busqueda);
         const matchSemana = !semana || item.SEMANA == semana;
@@ -526,7 +559,6 @@
         return matchBusqueda && matchSemana && matchMes && matchFecha && matchAlerta && matchEstado;
       });
 
-      // Conteo exclusivo de FALTO dentro del contexto activo
       const faltasMap = {};
       tempFiltered.forEach(d => {
         const est = (d.ESTADO_MATRIZ || d.ALERTA || "").toString().trim().toUpperCase();
@@ -569,7 +601,6 @@
       procesarYRenderizar(dbData);
     }
 
-    // EVALUACIÓN DE REGLAS BASADA SOLAMENTE EN REGISTROS CON ESTADO "FALTO"
     function obtenerAlertaEmpleado(dniEmpleado, datasetContext) {
       const source = datasetContext || filteredData;
       let totalFaltas = 0;
@@ -708,8 +739,33 @@
     }
 
     function toggleSortDetalle() {
+      sortDetalleByFecha = false;
       sortDetalleAsc = !sortDetalleAsc;
       document.getElementById("detalleSortLabel").innerText = sortDetalleAsc ? "A-Z" : "Z-A";
+      document.getElementById("iconSortFechaIndice").innerText = "⇅";
+      pagDetalle = 1;
+      renderTabla(filteredData);
+    }
+
+    function toggleSortDetalleFecha() {
+      if (!sortDetalleByFecha) {
+        sortDetalleByFecha = true;
+      } else {
+        sortFechaAsc = !sortFechaAsc;
+      }
+      
+      const labelBtn = document.getElementById("detalleSortFechaLabel");
+      const iconTh = document.getElementById("iconSortFechaIndice");
+
+      if (sortFechaAsc) {
+        if(labelBtn) labelBtn.innerText = "Antiguos primero";
+        if(iconTh) iconTh.innerText = "▲";
+      } else {
+        if(labelBtn) labelBtn.innerText = "Recientes primero";
+        if(iconTh) iconTh.innerText = "▼";
+      }
+
+      pagDetalle = 1;
       renderTabla(filteredData);
     }
 
@@ -721,11 +777,24 @@
     function renderTabla(data) {
       let dataOrdenada = [...data];
 
-      dataOrdenada.sort((a, b) => {
-        const nameA = a.APELLIDOS_NOMBRES || "";
-        const nameB = b.APELLIDOS_NOMBRES || "";
-        return sortDetalleAsc ? nameA.localeCompare(nameB) : nameB.localeCompare(a.APELLIDOS_NOMBRES || "");
-      });
+      if (sortDetalleByFecha) {
+        dataOrdenada.sort((a, b) => {
+          const timeA = parseFechaToTimestamp(a.FECHA_INDICE);
+          const timeB = parseFechaToTimestamp(b.FECHA_INDICE);
+          if (timeA !== timeB) {
+            return sortFechaAsc ? timeA - timeB : timeB - timeA;
+          }
+          const nameA = a.APELLIDOS_NOMBRES || "";
+          const nameB = b.APELLIDOS_NOMBRES || "";
+          return nameA.localeCompare(nameB);
+        });
+      } else {
+        dataOrdenada.sort((a, b) => {
+          const nameA = a.APELLIDOS_NOMBRES || "";
+          const nameB = b.APELLIDOS_NOMBRES || "";
+          return sortDetalleAsc ? nameA.localeCompare(nameB) : nameB.localeCompare(a.APELLIDOS_NOMBRES || "");
+        });
+      }
 
       const totalPaginas = Math.ceil(dataOrdenada.length / PAGE_SIZE) || 1;
       if (pagDetalle < 1) pagDetalle = 1;

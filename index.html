@@ -154,9 +154,15 @@
         <h3 class="text-sm font-bold text-gray-700 flex items-center gap-2">
           <i data-lucide="calendar" class="w-4 h-4 text-emerald-600"></i> Matriz de Asistencia Individual por Fecha
         </h3>
-        <button onclick="toggleSortMatriz()" class="text-xs bg-gray-100 hover:bg-gray-200 text-gray-700 px-3 py-1.5 rounded-lg flex items-center gap-1 font-medium transition">
-          <i data-lucide="arrow-up-down" class="w-3.5 h-3.5"></i> Ordenar Nombres (<span id="matrizSortLabel">A-Z</span>)
-        </button>
+        
+        <div class="flex items-center gap-2">
+          <button onclick="exportarMatrizExcel()" class="flex items-center gap-1.5 bg-emerald-700 hover:bg-emerald-800 text-white text-xs px-3 py-1.5 rounded-lg font-medium shadow-sm transition">
+            <i data-lucide="file-spreadsheet" class="w-3.5 h-3.5"></i> Exportar Matriz a Excel
+          </button>
+          <button onclick="toggleSortMatriz()" class="text-xs bg-gray-100 hover:bg-gray-200 text-gray-700 px-3 py-1.5 rounded-lg flex items-center gap-1 font-medium transition">
+            <i data-lucide="arrow-up-down" class="w-3.5 h-3.5"></i> Ordenar Nombres (<span id="matrizSortLabel">A-Z</span>)
+          </button>
+        </div>
       </div>
 
       <div class="overflow-x-auto">
@@ -409,7 +415,7 @@
       } catch (err) {
         console.error("Error en conexión:", err);
         setConnectionStatus("offline", dbData.length > 0 ? "Sin Conexión (Usando Local)" : "Sin Conexión");
-      } finally {
+      } fontal {
         if(icon) icon.classList.remove("animate-spin");
       }
     }
@@ -456,7 +462,6 @@
     }
 
     function renderCharts(data) {
-      // Filtrar únicamente los registros que tengan ALERTA === "ASISTIO"
       const dataAsistio = data.filter(curr => {
         const alertaStr = (curr.ALERTA || "").toString().trim().toUpperCase();
         return alertaStr === "ASISTIO";
@@ -608,7 +613,7 @@
       procesarYRenderizar(dbData);
     }
 
-    function obtenerAlertaEmpleado(dniEmpleado, datasetContext) {
+    function obtenerTextoAlertaEmpleado(dniEmpleado, datasetContext) {
       const source = datasetContext || filteredData;
       let totalFaltas = 0;
 
@@ -622,11 +627,20 @@
       });
 
       if (totalFaltas >= 6) {
-        return '<span class="px-2 py-0.5 rounded-full text-[10px] font-bold alert-rojo uppercase">DAR DE BAJA</span>';
+        return 'DAR DE BAJA';
       } else if (totalFaltas >= 3) {
+        return '>= 3 FALTAS';
+      }
+      return 'OK';
+    }
+
+    function obtenerAlertaEmpleado(dniEmpleado, datasetContext) {
+      const txt = obtenerTextoAlertaEmpleado(dniEmpleado, datasetContext);
+      if (txt === 'DAR DE BAJA') {
+        return '<span class="px-2 py-0.5 rounded-full text-[10px] font-bold alert-rojo uppercase">DAR DE BAJA</span>';
+      } else if (txt === '>= 3 FALTAS') {
         return '<span class="px-2 py-0.5 rounded-full text-[10px] font-bold alert-naranja uppercase">> = 3 FALTAS</span>';
       }
-      
       return '';
     }
 
@@ -842,6 +856,69 @@
           </tr>
         `;
       }).join("");
+    }
+
+    function exportarMatrizExcel() {
+      if (!filteredData || filteredData.length === 0) {
+        alert("No hay datos para exportar.");
+        return;
+      }
+
+      const fechas = [...new Set(filteredData.map(i => i.FECHA_INDICE))].filter(Boolean).sort();
+
+      let empleadosMap = {};
+      filteredData.forEach(i => {
+        if (!empleadosMap[i.DNI]) {
+          empleadosMap[i.DNI] = { dni: i.DNI, nombre: i.APELLIDOS_NOMBRES || "" };
+        }
+      });
+      let empleados = Object.values(empleadosMap);
+
+      empleados.sort((a, b) => {
+        return sortMatrizAsc ? a.nombre.localeCompare(b.nombre) : b.nombre.localeCompare(a.nombre);
+      });
+
+      const dataMatrizExport = empleados.map(emp => {
+        let fila = {
+          "DNI": emp.dni,
+          "Apellidos y Nombres": emp.nombre
+        };
+
+        let totAsistio = 0;
+        let totFalto = 0;
+
+        fechas.forEach(f => {
+          const info = formatFechaShortConDia(f);
+          const colHeader = `${info.dia.toUpperCase()} ${info.fecha}`;
+          
+          const reg = filteredData.find(d => d.DNI === emp.dni && d.FECHA_INDICE === f);
+          let estado = "INACTIVO";
+          if (reg) {
+            estado = (reg.ESTADO_MATRIZ || reg.ALERTA || "INACTIVO").toString().trim().toUpperCase();
+            if (!["ASISTIO", "FALTO", "FERIADO"].includes(estado)) {
+              estado = "INACTIVO";
+            }
+          }
+
+          if (estado === "ASISTIO") totAsistio++;
+          if (estado === "FALTO") totFalto++;
+
+          fila[colHeader] = estado;
+        });
+
+        fila["Total Asistió"] = totAsistio;
+        fila["Total Faltó"] = totFalto;
+        fila["Alerta Semanal"] = obtenerTextoAlertaEmpleado(emp.dni, filteredData);
+
+        return fila;
+      });
+
+      const worksheet = XLSX.utils.json_to_sheet(dataMatrizExport);
+      const workbook = XLSX.utils.book_new();
+      XLSX.utils.book_append_sheet(workbook, worksheet, "Matriz_Asistencia");
+
+      const hoy = new Date().toISOString().split('T')[0];
+      XLSX.writeFile(workbook, `Matriz_Asistencia_Huarmey_${hoy}.xlsx`);
     }
 
     function exportarExcel() {

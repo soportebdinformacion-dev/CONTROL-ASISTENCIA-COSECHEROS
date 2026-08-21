@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+<!DOCTYPE html><!DOCTYPE html>
 <html lang="es">
 <head>
   <meta charset="UTF-8">
@@ -154,9 +154,14 @@
         <h3 class="text-sm font-bold text-gray-700 flex items-center gap-2">
           <i data-lucide="calendar" class="w-4 h-4 text-emerald-600"></i> Matriz de Asistencia Individual por Fecha
         </h3>
-        <button onclick="toggleSortMatriz()" class="text-xs bg-gray-100 hover:bg-gray-200 text-gray-700 px-3 py-1.5 rounded-lg flex items-center gap-1 font-medium transition">
-          <i data-lucide="arrow-up-down" class="w-3.5 h-3.5"></i> Ordenar Nombres (<span id="matrizSortLabel">A-Z</span>)
-        </button>
+        <div class="flex items-center gap-2">
+          <button onclick="exportarMatrizExcel()" class="flex items-center gap-1.5 bg-emerald-700 hover:bg-emerald-800 text-white text-xs px-3 py-1.5 rounded-lg font-medium shadow-sm transition">
+            <i data-lucide="file-spreadsheet" class="w-4 h-4"></i> Exportar Matriz Excel
+          </button>
+          <button onclick="toggleSortMatriz()" class="text-xs bg-gray-100 hover:bg-gray-200 text-gray-700 px-3 py-1.5 rounded-lg flex items-center gap-1 font-medium transition">
+            <i data-lucide="arrow-up-down" class="w-3.5 h-3.5"></i> Ordenar Nombres (<span id="matrizSortLabel">A-Z</span>)
+          </button>
+        </div>
       </div>
 
       <div class="overflow-x-auto">
@@ -458,19 +463,37 @@
     }
 
     function renderCharts(data) {
-      const getCounts = (key) => data.reduce((acc, curr) => {
-        const val = curr[key] || "Desconocido";
+      // Filtrar únicamente los registros donde la persona ASISTIO para los visuales
+      const asistioData = data.filter(curr => {
+        const alertaStr = (curr.ALERTA || curr.ESTADO_MATRIZ || "").toString().trim().toUpperCase();
+        return alertaStr === "ASISTIO";
+      });
+
+      const getCounts = (dataset, key) => dataset.reduce((acc, curr) => {
+        const val = curr[key] ? curr[key].toString().trim() : "Desconocido";
         acc[val] = (acc[val] || 0) + 1;
         return acc;
       }, {});
 
-      const sexoCounts = getCounts("SEXO");
-      const histCounts = getCounts("HISTORICO");
-      const modCounts = getCounts("MODALIDAD");
+      // 1. Distribución por Sexo (contar los ASISTIO)
+      const sexoCounts = getCounts(asistioData, "SEXO");
+      const dataSexo = [sexoCounts["M"] || sexoCounts["MASCULINO"] || 0, sexoCounts["F"] || sexoCounts["FEMENINO"] || 0];
 
-      createChart("chartSexo", "doughnut", ["MASCULINO", "FEMENINO"], [sexoCounts["M"] || 0, sexoCounts["F"] || 0], ["#d32f2f", "#2e7d32"]);
-      createChart("chartHistorico", "bar", Object.keys(histCounts), Object.values(histCounts), "#2e7d32");
-      createChart("chartModalidad", "pie", Object.keys(modCounts), Object.values(modCounts), ["#d32f2f", "#4caf50", "#ff9800", "#2196f3", "#9c27b0"]);
+      // 2. Distribución Histórica (contar los ASISTIO)
+      const histCounts = getCounts(asistioData, "HISTORICO");
+      delete histCounts["Desconocido"];
+      const labelsHistorico = Object.keys(histCounts);
+      const dataHistorico = Object.values(histCounts);
+
+      // 3. Modalidad Contratación (contar los ASISTIO)
+      const modCounts = getCounts(asistioData, "MODALIDAD");
+      delete modCounts["Desconocido"];
+      const labelsModalidad = Object.keys(modCounts);
+      const dataModalidad = Object.values(modCounts);
+
+      createChart("chartSexo", "doughnut", ["MASCULINO", "FEMENINO"], dataSexo, ["#d32f2f", "#2e7d32"]);
+      createChart("chartHistorico", "bar", labelsHistorico, dataHistorico, "#2e7d32");
+      createChart("chartModalidad", "pie", labelsModalidad, dataModalidad, ["#d32f2f", "#4caf50", "#ff9800", "#2196f3", "#9c27b0"]);
     }
 
     function createChart(canvasId, type, labels, data, colors) {
@@ -487,6 +510,10 @@
           responsive: true, 
           maintainAspectRatio: false,
           plugins: {
+            legend: {
+              display: type !== 'bar', // Ocultar leyenda en gráfico de barras para evitar 'undefined'
+              position: 'top'
+            },
             datalabels: {
               color: type === 'bar' ? '#1e293b' : '#ffffff',
               font: { weight: 'bold', size: 10 },
@@ -866,6 +893,72 @@
 
       const hoy = new Date().toISOString().split('T')[0];
       XLSX.writeFile(workbook, `Reporte_Huarmey_${hoy}.xlsx`);
+    }
+
+    function exportarMatrizExcel() {
+      if (!filteredData || filteredData.length === 0) {
+        alert("No hay registros para exportar la matriz.");
+        return;
+      }
+
+      const fechas = [...new Set(filteredData.map(i => i.FECHA_INDICE))].filter(Boolean).sort();
+
+      let empleadosMap = {};
+      filteredData.forEach(i => {
+        if (!empleadosMap[i.DNI]) {
+          empleadosMap[i.DNI] = { dni: i.DNI, nombre: i.APELLIDOS_NOMBRES || "" };
+        }
+      });
+
+      let empleados = Object.values(empleadosMap);
+      empleados.sort((a, b) => {
+        return sortMatrizAsc ? a.nombre.localeCompare(b.nombre) : b.nombre.localeCompare(a.nombre);
+      });
+
+      const dataToExport = empleados.map(emp => {
+        let fila = {
+          "DNI": emp.dni,
+          "Apellidos y Nombres": emp.nombre
+        };
+
+        let totAsistio = 0;
+        let totFalto = 0;
+
+        fechas.forEach(f => {
+          const reg = filteredData.find(d => d.DNI === emp.dni && d.FECHA_INDICE === f);
+          let estado = "INACTIVO";
+          if (reg) {
+            estado = (reg.ESTADO_MATRIZ || reg.ALERTA || "INACTIVO").toString().trim().toUpperCase();
+            if (!["ASISTIO", "FALTO", "FERIADO"].includes(estado)) {
+              estado = "INACTIVO";
+            }
+          }
+
+          if (estado === "ASISTIO") totAsistio++;
+          if (estado === "FALTO") totFalto++;
+
+          const infoFecha = formatFechaShortConDia(f);
+          const colHeader = `${infoFecha.dia} ${infoFecha.fecha}`;
+          fila[colHeader] = estado;
+        });
+
+        fila["Tot. Asistió"] = totAsistio;
+        fila["Tot. Faltó"] = totFalto;
+
+        let alertaTexto = "";
+        if (totFalto >= 6) alertaTexto = "DAR DE BAJA";
+        else if (totFalto >= 3) alertaTexto = ">= 3 FALTAS";
+        fila["Alerta Semanal"] = alertaTexto;
+
+        return fila;
+      });
+
+      const worksheet = XLSX.utils.json_to_sheet(dataToExport);
+      const workbook = XLSX.utils.book_new();
+      XLSX.utils.book_append_sheet(workbook, worksheet, "Matriz_Asistencia");
+
+      const hoy = new Date().toISOString().split('T')[0];
+      XLSX.writeFile(workbook, `Matriz_Asistencia_Huarmey_${hoy}.xlsx`);
     }
   </script>
 </body>

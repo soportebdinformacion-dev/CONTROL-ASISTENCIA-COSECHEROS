@@ -250,7 +250,7 @@
     let pagDetalle = 1;
     let sortDetalleAsc = true;
     let sortDetalleByFecha = false;
-    let sortFechaAsc = false;
+    let sortFechaAsc = false; // Por defecto: más recientes primero (Descendente)
 
     function formatNumber(num) {
       return (num || 0).toLocaleString('es-PE');
@@ -280,11 +280,13 @@
       const parts = clean.split("-");
 
       if (parts.length === 3) {
+        // Formato ISO: YYYY-MM-DD
         return new Date(parseInt(parts[0], 10), parseInt(parts[1], 10) - 1, parseInt(parts[2], 10)).getTime();
       }
 
       const partsSlash = clean.split("/");
       if (partsSlash.length === 3) {
+        // Formato DD/MM/YY o DD/MM/YYYY
         let year = parseInt(partsSlash[2], 10);
         if (year < 100) year += 2000;
         return new Date(year, parseInt(partsSlash[1], 10) - 1, parseInt(partsSlash[0], 10)).getTime();
@@ -456,13 +458,7 @@
     }
 
     function renderCharts(data) {
-      // Filtrar únicamente los registros que tengan ALERTA === "ASISTIO"
-      const dataAsistio = data.filter(curr => {
-        const alertaStr = (curr.ALERTA || "").toString().trim().toUpperCase();
-        return alertaStr === "ASISTIO";
-      });
-
-      const getCounts = (key) => dataAsistio.reduce((acc, curr) => {
+      const getCounts = (key) => data.reduce((acc, curr) => {
         const val = curr[key] || "Desconocido";
         acc[val] = (acc[val] || 0) + 1;
         return acc;
@@ -491,9 +487,6 @@
           responsive: true, 
           maintainAspectRatio: false,
           plugins: {
-            legend: {
-              display: type !== 'bar'
-            },
             datalabels: {
               color: type === 'bar' ? '#1e293b' : '#ffffff',
               font: { weight: 'bold', size: 10 },
